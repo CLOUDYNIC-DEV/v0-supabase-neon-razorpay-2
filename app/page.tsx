@@ -26,7 +26,9 @@ export default function Page() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, 0)
   }
 
   useEffect(() => {
@@ -142,23 +144,23 @@ export default function Page() {
               <span className="text-xs opacity-75">AI may make mistakes - verify before action</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-background to-card/50">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up`}
                 >
                   <div
-                    className={`max-w-xs px-4 py-2 border-2 ${msg.role === 'user'
-                        ? 'bg-foreground text-background border-foreground'
-                        : 'bg-card text-foreground border-foreground'
+                    className={`max-w-xs px-4 py-3 border-2 rounded-sm ${msg.role === 'user'
+                        ? 'bg-foreground text-background border-foreground font-medium'
+                        : 'bg-card text-foreground border-foreground shadow-sm'
                       }`}
                   >
-                    <p className="text-sm">{msg.content}</p>
+                    <p className="text-sm leading-relaxed">{msg.content}</p>
                   </div>
                 </div>
               ))}
-              <div ref={messagesEndRef} />
+              <div ref={messagesEndRef} className="h-1" />
             </div>
 
             {!canChat && messageCount >= 3 && (
