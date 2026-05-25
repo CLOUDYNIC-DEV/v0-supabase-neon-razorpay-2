@@ -182,7 +182,7 @@ export default function CheckoutPage() {
             disabled={loading}
             className="w-full px-8 py-4 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all disabled:opacity-50"
           >
-            {loading ? 'PROCESSING...' : plan.price === 0 ? 'GET FREE PLAN' : 'PAY ₹' + plan.price}
+            {loading ? 'PROCESSING...' : plan.price === 0 ? 'GET FREE PLAN' : 'PAY $' + plan.price}
           </button>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
