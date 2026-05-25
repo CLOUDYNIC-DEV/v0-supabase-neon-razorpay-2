@@ -205,7 +205,7 @@ export default function Page() {
           <div className="grid md:grid-cols-3 gap-8">
             <div className="border-2 border-foreground p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105">
               <h3 className="text-xl font-bold mb-3">AFFORDABLE</h3>
-              <p className="text-muted-foreground">Start free with 100 requests per day. Scale with our Pro and Pro Max plans at just $1 and $5/month.</p>
+              <p className="text-muted-foreground">Start free with 100 requests per day. Scale with our Pro and Pro Max plans at just $1 and $9/month.</p>
             </div>
             <div className="border-2 border-foreground p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105" style={{ animationDelay: '0.1s' }}>
               <h3 className="text-xl font-bold mb-3">CUSTOMIZABLE</h3>
