@@ -63,10 +63,7 @@ export default function Pricing() {
           </div>
 
           {/* Pro Plan */}
-          <div className="border-4 border-foreground p-8 flex flex-col bg-card ring-2 ring-foreground ring-offset-0 animate-fade-in-up" style={{animationDelay: '0.1s'}}>
-            <div className="mb-4 inline-block bg-foreground text-background px-3 py-1 w-fit font-bold text-sm">
-              POPULAR
-            </div>
+          <div className="border-4 border-foreground p-8 flex flex-col bg-card ring-2 ring-foreground ring-offset-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <h2 className="text-2xl font-bold mb-2">PRO</h2>
             <p className="text-muted-foreground mb-6">For growing applications</p>
 
@@ -111,7 +108,10 @@ export default function Pricing() {
           </div>
 
           {/* Pro Max Plan */}
-          <div className="border-4 border-foreground p-8 flex flex-col animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+          <div className="border-4 border-foreground p-8 flex flex-col animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <div className="mb-4 inline-block bg-foreground text-background px-3 py-1 w-fit font-bold text-sm">
+              POPULAR
+            </div>
             <h2 className="text-2xl font-bold mb-2">PRO MAX</h2>
             <p className="text-muted-foreground mb-6">For enterprise needs</p>
 
