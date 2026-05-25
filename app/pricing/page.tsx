@@ -170,7 +170,6 @@ export default function Pricing() {
               <p className="text-muted-foreground">
                 For enterprise needs, contact us at hello@cloudynic.com for custom pricing options.
               </p>
-            </div>
           </div>
         </div>
       </section>
