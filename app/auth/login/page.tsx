@@ -40,7 +40,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-8 border-4 border-foreground">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-foreground">CloudyNIC</h1>
+          <h1 className="text-4xl font-bold mb-2 text-foreground">Cloudynic</h1>
           <p className="text-sm text-muted-foreground">Sign in to your account</p>
         </div>
 
