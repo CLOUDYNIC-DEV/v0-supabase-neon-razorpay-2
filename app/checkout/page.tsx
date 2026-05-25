@@ -84,7 +84,7 @@ export default function CheckoutPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: Math.round(plan.price * 100),
         currency: 'USD',
-        name: 'CloudyNIC AI',
+        name: 'Cloudynic AI',
         description: `${plan.name} Plan Subscription`,
         order_id: orderData.orderId,
         handler: async (response: any) => {
