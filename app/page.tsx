@@ -250,11 +250,6 @@ export default function Page() {
                     hello@cloudynic.com
                   </a>
                 </li>
-                <li>
-                  <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:underline">
-                    GitHub
-                  </a>
-                </li>
               </ul>
             </div>
             <div>
@@ -273,26 +268,14 @@ export default function Page() {
               </ul>
             </div>
             <div>
-              <h4 className="font-bold mb-4">LEGAL</h4>
-              <ul className="space-y-2 text-sm opacity-75">
-                <li>
-                  <a href="#" className="hover:underline">
-                    Terms
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:underline">
-                    Privacy
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-background pt-8 text-center text-sm opacity-75">
-            <p>&copy; 2026 CloudyNIC. Built with purpose.</p>
+            </ul>
           </div>
         </div>
-      </footer>
-    </main>
+        <div className="border-t border-background pt-8 text-center text-sm opacity-75">
+          <p>&copy; 2026 CloudyNIC. Built with purpose.</p>
+        </div>
+      </div>
+    </footer>
+    </main >
   )
 }
