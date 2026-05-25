@@ -162,7 +162,7 @@ export default function CheckoutPage() {
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4">{plan.name} Plan</h2>
             <div className="text-5xl font-bold mb-2">
-              ₹{plan.price}
+              ${plan.price}
               <span className="text-xl text-muted-foreground">/month</span>
             </div>
             <div className="space-y-2 text-muted-foreground mb-8">
