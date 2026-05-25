@@ -37,7 +37,8 @@ export default function Page() {
     e.preventDefault()
     if (!input.trim() || loading || !canChat) return
 
-    if (messageCount >= 3) {
+    const currentCount = messageCount
+    if (currentCount >= 3) {
       setCanChat(false)
       return
     }
@@ -48,6 +49,7 @@ export default function Page() {
       content: input,
     }
 
+    const messageText = input
     setMessages((prev) => [...prev, userMessage])
     setInput('')
     setLoading(true)
@@ -59,7 +61,7 @@ export default function Page() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: input,
+          message: messageText,
         }),
       })
 
@@ -72,9 +74,10 @@ export default function Page() {
           content: data.reply,
         }
         setMessages((prev) => [...prev, assistantMessage])
-        setMessageCount((prev) => prev + 1)
+        const newCount = currentCount + 1
+        setMessageCount(newCount)
 
-        if (messageCount + 1 >= 3) {
+        if (newCount >= 3) {
           setCanChat(false)
         }
       } else {
@@ -88,6 +91,7 @@ export default function Page() {
         ])
       }
     } catch (error) {
+      console.error('Chat error:', error)
       setMessages((prev) => [
         ...prev,
         {
@@ -108,23 +112,23 @@ export default function Page() {
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h1 className="text-6xl font-bold mb-6 leading-tight">
+          <div className="animate-fade-in-up">
+            <h1 className="text-6xl font-bold mb-6 leading-tight animate-fade-in-up">
               AFFORDABLE AI FOR ALL
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+            <p className="text-xl text-muted-foreground mb-8 leading-relaxed animate-fade-in-up" style={{animationDelay: '0.1s'}}>
               Powerful, customizable AI platform built for everyone. Simple API integration with flexible pricing. No hidden fees.
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-4 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
               <Link
                 href="/pricing"
-                className="px-8 py-4 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all"
+                className="px-8 py-4 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-smooth hover:scale-105"
               >
                 VIEW PRICING
               </Link>
               <Link
                 href="/auth/sign-up"
-                className="px-8 py-4 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-all"
+                className="px-8 py-4 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-smooth hover:scale-105"
               >
                 GET STARTED
               </Link>
@@ -132,9 +136,10 @@ export default function Page() {
           </div>
 
           {/* Demo Chat */}
-          <div className="border-4 border-foreground bg-card flex flex-col h-96">
-            <div className="bg-foreground text-background p-4 font-bold border-b-2 border-foreground">
-              DEMO CHAT ({messageCount}/3)
+          <div className="border-4 border-foreground bg-card flex flex-col h-96 animate-pulse-slow">
+            <div className="bg-foreground text-background p-4 font-bold border-b-2 border-foreground flex justify-between items-center">
+              <span>DEMO CHAT ({messageCount}/3)</span>
+              <span className="text-xs opacity-75">AI may make mistakes - verify before action</span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -194,17 +199,17 @@ export default function Page() {
       {/* Features Section */}
       <section className="bg-card border-y-2 border-foreground">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <h2 className="text-4xl font-bold mb-12 text-center">WHY CLOUDYNIC?</h2>
+          <h2 className="text-4xl font-bold mb-12 text-center animate-fade-in-up">WHY CLOUDYNIC?</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="border-2 border-foreground p-6">
+            <div className="border-2 border-foreground p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105">
               <h3 className="text-xl font-bold mb-3">AFFORDABLE</h3>
               <p className="text-muted-foreground">Start free with 100 requests per day. Scale with our Pro and Pro Max plans at just $1 and $5/month.</p>
             </div>
-            <div className="border-2 border-foreground p-6">
+            <div className="border-2 border-foreground p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105" style={{animationDelay: '0.1s'}}>
               <h3 className="text-xl font-bold mb-3">CUSTOMIZABLE</h3>
               <p className="text-muted-foreground">Build exactly what you need with our flexible API. Full control over parameters and model behavior.</p>
             </div>
-            <div className="border-2 border-foreground p-6">
+            <div className="border-2 border-foreground p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105" style={{animationDelay: '0.2s'}}>
               <h3 className="text-xl font-bold mb-3">SIMPLE</h3>
               <p className="text-muted-foreground">RESTful API with clear documentation. Get started in minutes, not hours.</p>
             </div>
@@ -242,6 +247,26 @@ export default function Page() {
                   <a href="mailto:hello@cloudynic.com" className="hover:underline">
                     hello@cloudynic.com
                   </a>
+                </li>
+                <li>
+                  <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:underline">
+                    GitHub
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4">LEGAL</h4>
+              <ul className="space-y-2 text-sm opacity-75">
+                <li>
+                  <Link href="/terms" className="hover:underline">
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="hover:underline">
+                    Privacy
+                  </Link>
                 </li>
               </ul>
             </div>

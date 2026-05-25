@@ -56,14 +56,14 @@ export default function Pricing() {
 
             <Link
               href="/auth/sign-up"
-              className="w-full px-6 py-3 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-all text-center"
+              className="w-full px-6 py-3 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-all text-center animate-fade-in-up"
             >
-              GET STARTED
+              GET STARTED FREE
             </Link>
           </div>
 
           {/* Pro Plan */}
-          <div className="border-4 border-foreground p-8 flex flex-col bg-card ring-2 ring-foreground ring-offset-0">
+          <div className="border-4 border-foreground p-8 flex flex-col bg-card ring-2 ring-foreground ring-offset-0 animate-fade-in-up" style={{animationDelay: '0.1s'}}>
             <div className="mb-4 inline-block bg-foreground text-background px-3 py-1 w-fit font-bold text-sm">
               POPULAR
             </div>
@@ -103,15 +103,15 @@ export default function Pricing() {
             </ul>
 
             <Link
-              href="/auth/sign-up"
+              href="/checkout?plan=pro"
               className="w-full px-6 py-3 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-center"
             >
-              UPGRADE TO PRO
+              CHOOSE PRO
             </Link>
           </div>
 
           {/* Pro Max Plan */}
-          <div className="border-4 border-foreground p-8 flex flex-col">
+          <div className="border-4 border-foreground p-8 flex flex-col animate-fade-in-up" style={{animationDelay: '0.2s'}}>
             <h2 className="text-2xl font-bold mb-2">PRO MAX</h2>
             <p className="text-muted-foreground mb-6">For enterprise needs</p>
 
@@ -148,10 +148,10 @@ export default function Pricing() {
             </ul>
 
             <Link
-              href="/auth/sign-up"
-              className="w-full px-6 py-3 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-all text-center"
+              href="/checkout?plan=pro_max"
+              className="w-full px-6 py-3 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-center"
             >
-              UPGRADE TO PRO MAX
+              CHOOSE PRO MAX
             </Link>
           </div>
         </div>

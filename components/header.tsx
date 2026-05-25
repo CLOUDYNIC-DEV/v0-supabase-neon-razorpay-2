@@ -36,24 +36,30 @@ export default function Header() {
   if (isAuthPage || isDashboard) return null
 
   return (
-    <header className="sticky top-0 z-50 bg-background border-b-2 border-foreground">
+    <header className="sticky top-0 z-50 bg-background border-b-2 border-foreground animate-fade-in-up">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="text-2xl font-bold text-foreground hover:underline">
+          <Link href="/" className="text-2xl font-bold text-foreground hover:scale-105 transition-transform">
             CLOUDYNIC
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-sm font-bold hover:underline">
+            <Link href="/" className="text-sm font-bold hover:underline transition-smooth">
               HOME
             </Link>
-            <Link href="/pricing" className="text-sm font-bold hover:underline">
+            <Link href="/pricing" className="text-sm font-bold hover:underline transition-smooth">
               PRICING
             </Link>
-            <Link href="/about" className="text-sm font-bold hover:underline">
+            <Link href="/about" className="text-sm font-bold hover:underline transition-smooth">
               ABOUT
             </Link>
-            <a href="mailto:hello@cloudynic.com" className="text-sm font-bold hover:underline">
+            <Link href="/terms" className="text-sm font-bold hover:underline transition-smooth">
+              TERMS
+            </Link>
+            <Link href="/privacy" className="text-sm font-bold hover:underline transition-smooth">
+              PRIVACY
+            </Link>
+            <a href="mailto:hello@cloudynic.com" className="text-sm font-bold hover:underline transition-smooth">
               SUPPORT
             </a>
           </nav>
@@ -65,13 +71,13 @@ export default function Header() {
                   <>
                     <Link
                       href="/dashboard"
-                      className="px-4 py-2 text-sm font-bold border-2 border-foreground hover:bg-foreground hover:text-background transition-all"
+                      className="px-4 py-2 text-sm font-bold border-2 border-foreground hover:bg-foreground hover:text-background transition-smooth"
                     >
                       DASHBOARD
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="px-4 py-2 text-sm font-bold bg-foreground text-background border-2 border-foreground hover:bg-background hover:text-foreground transition-all"
+                      className="px-4 py-2 text-sm font-bold bg-foreground text-background border-2 border-foreground hover:bg-background hover:text-foreground transition-smooth"
                     >
                       LOGOUT
                     </button>
@@ -80,13 +86,13 @@ export default function Header() {
                   <>
                     <Link
                       href="/auth/login"
-                      className="px-4 py-2 text-sm font-bold border-2 border-foreground hover:bg-foreground hover:text-background transition-all"
+                      className="px-4 py-2 text-sm font-bold border-2 border-foreground hover:bg-foreground hover:text-background transition-smooth"
                     >
                       LOGIN
                     </Link>
                     <Link
                       href="/auth/sign-up"
-                      className="px-4 py-2 text-sm font-bold bg-foreground text-background border-2 border-foreground hover:bg-background hover:text-foreground transition-all"
+                      className="px-4 py-2 text-sm font-bold bg-foreground text-background border-2 border-foreground hover:bg-background hover:text-foreground transition-smooth"
                     >
                       SIGN UP
                     </Link>

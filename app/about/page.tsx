@@ -9,7 +9,7 @@ export default function About() {
       <Header />
 
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="mb-16">
+        <div className="mb-16 animate-fade-in-up">
           <h1 className="text-5xl font-bold mb-6">ABOUT CLOUDYNIC</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">
             Cloudynic is building the future of accessible AI. We believe powerful AI should be affordable, customizable, and easy to use for everyone.
@@ -17,11 +17,11 @@ export default function About() {
         </div>
 
         {/* Leadership Section */}
-        <div className="mb-20 border-4 border-foreground p-12 bg-card">
+        <div className="mb-20 border-4 border-foreground p-12 bg-card animate-fade-in-up" style={{animationDelay: '0.1s'}}>
           <h2 className="text-3xl font-bold mb-12">LEADERSHIP</h2>
 
           <div className="grid md:grid-cols-2 gap-12">
-            <div className="border-2 border-foreground p-8">
+            <div className="border-2 border-foreground p-8 hover:shadow-lg transition-smooth hover:scale-105 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
               <h3 className="text-2xl font-bold mb-2">ASHWIN</h3>
               <p className="text-sm text-muted-foreground mb-4 font-bold">FOUNDER & OWNER</p>
               <p className="leading-relaxed mb-4">
@@ -32,7 +32,7 @@ export default function About() {
               </p>
             </div>
 
-            <div className="border-2 border-foreground p-8">
+            <div className="border-2 border-foreground p-8 hover:shadow-lg transition-smooth hover:scale-105 animate-fade-in-up" style={{animationDelay: '0.3s'}}>
               <h3 className="text-2xl font-bold mb-2">ADHARSH</h3>
               <p className="text-sm text-muted-foreground mb-4 font-bold">CEO</p>
               <p className="leading-relaxed mb-4">
@@ -46,7 +46,7 @@ export default function About() {
         </div>
 
         {/* Our Story */}
-        <div className="mb-20">
+        <div className="mb-20 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
           <h2 className="text-3xl font-bold mb-8">OUR STORY</h2>
           <div className="space-y-6 text-lg leading-relaxed">
             <p>
