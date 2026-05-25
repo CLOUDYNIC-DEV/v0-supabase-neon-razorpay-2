@@ -1,7 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDemoChatCount, trackDemoChat } from '@/lib/db'
 
 const apiEndpoint = 'http://140.245.196.245:11434/api/chat'
+
+// In-memory storage for demo chat limits (IP -> message count)
+const demoLimits = new Map<string, { count: number; resetTime: number }>()
+const DEMO_LIMIT = 3
+const RESET_INTERVAL = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+
+function getDemoCount(ip: string): number {
+  const now = Date.now()
+  const record = demoLimits.get(ip)
+
+  if (!record || now > record.resetTime) {
+    demoLimits.set(ip, { count: 0, resetTime: now + RESET_INTERVAL })
+    return 0
+  }
+
+  return record.count
+}
+
+function incrementDemoCount(ip: string): void {
+  const record = demoLimits.get(ip) || { count: 0, resetTime: Date.now() + RESET_INTERVAL }
+  record.count += 1
+  demoLimits.set(ip, record)
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,12 +31,12 @@ export async function POST(request: NextRequest) {
     const ip = clientIp.split(',')[0].trim()
 
     // Check demo chat limit (3 per IP per day)
-    const currentCount = await getDemoChatCount(ip)
+    const currentCount = getDemoCount(ip)
 
-    if (currentCount >= 3) {
+    if (currentCount >= DEMO_LIMIT) {
       return NextResponse.json(
         {
-          error: 'Demo limit reached. Please sign up for unlimited access.',
+          error: `Demo limit reached (${DEMO_LIMIT}/day). Please sign up for unlimited access.`,
         },
         { status: 429 }
       )
@@ -29,12 +51,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call Ollama API with streaming
+    // Call Ollama API
     const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'CloudynicAI',
+        model: 'mistral',
         messages: [
           {
             role: 'system',
@@ -48,7 +70,8 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
-      console.error('Ollama API error:', response.status, await response.text())
+      const errorText = await response.text()
+      console.error('Ollama API error:', response.status, errorText)
       return NextResponse.json({ error: 'Failed to get response from AI model' }, { status: 500 })
     }
 
@@ -56,10 +79,11 @@ export async function POST(request: NextRequest) {
     const reply = data.message?.content || 'I could not generate a response.'
 
     // Track the usage
-    await trackDemoChat(ip)
+    incrementDemoCount(ip)
 
     return NextResponse.json({
       reply,
+      remaining: DEMO_LIMIT - (currentCount + 1),
     })
   } catch (error) {
     console.error('Demo chat error:', error)

@@ -16,10 +16,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Create order (amount in cents for USD)
+    // Receipt must be max 40 characters
+    const receipt = `${user_id.substring(0, 15)}-${Date.now()}`.substring(0, 40)
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100), // Amount in cents
       currency: 'USD',
-      receipt: `${user_id}-${Date.now()}`,
+      receipt: receipt,
       notes: {
         plan,
         user_id,
