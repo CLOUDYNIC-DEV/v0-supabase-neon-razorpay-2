@@ -244,11 +244,6 @@ export default function Page() {
                     hello@cloudynic.com
                   </a>
                 </li>
-                <li>
-                  <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:underline">
-                    GitHub
-                  </a>
-                </li>
               </ul>
             </div>
             <div>
