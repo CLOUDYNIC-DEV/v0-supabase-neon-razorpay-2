@@ -8,7 +8,7 @@ import Header from '@/components/header'
 const PLANS = {
   free: { name: 'Free', price: 0, requests_per_minute: 1, requests_per_day: 100 },
   pro: { name: 'Pro', price: 1.99, requests_per_minute: 30, requests_per_day: 10000 },
-  pro_max: { name: 'Pro Max', price: 9.99, requests_per_minute: ∞, requests_per_day: ∞ },
+  pro_max: { name: 'Pro Max', price: 9.99, requests_per_minute: ∞, requests_per_day: "Unlimited" },
 }
 
 declare global {
