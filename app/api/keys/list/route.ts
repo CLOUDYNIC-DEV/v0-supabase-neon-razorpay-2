@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from '@neondatabase/serverless'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,16 +12,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbSql = sql(process.env.DATABASE_URL!)
-    const keys = await dbSql`
-      SELECT id, api_key, key_name, created_at, is_active 
-      FROM cloudynic_api_keys 
-      WHERE user_id = ${user.id}
-      ORDER BY created_at DESC
-    `
+    const { data: keys, error } = await supabase
+      .from('cloudynic_api_keys')
+      .select('id, api_key, key_name, created_at, is_active')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to fetch API keys' }, { status: 500 })
+    }
 
     return NextResponse.json({
-      keys: keys,
+      keys: keys || [],
     })
   } catch (error) {
     console.error('API keys fetch error:', error)

@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from '@neondatabase/serverless'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,15 +12,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbSql = sql(process.env.DATABASE_URL!)
-    const subscriptions = await dbSql`
-      SELECT * FROM cloudynic_subscriptions 
-      WHERE user_id = ${user.id}
-      ORDER BY created_at DESC
-      LIMIT 1
-    `
+    const { data: subscriptions, error } = await supabase
+      .from('cloudynic_subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
 
-    if (subscriptions.length === 0) {
+    if (error || !subscriptions || subscriptions.length === 0) {
       return NextResponse.json({ subscription: null })
     }
 

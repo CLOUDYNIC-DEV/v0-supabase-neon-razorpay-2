@@ -122,28 +122,25 @@ export async function createSubscription(userId: string, planType: string): Prom
 }
 
 export async function updateSubscription(subscriptionId: string, data: Partial<Subscription>): Promise<Subscription> {
-  const updates: string[] = []
-  const values: any[] = []
-  let paramCount = 1
-
-  Object.entries(data).forEach(([key, value]) => {
-    if (key !== 'id') {
-      updates.push(`${key} = $${paramCount}`)
-      values.push(value)
-      paramCount++
-    }
-  })
-
-  values.push(subscriptionId)
-
-  const query = `
+  // Handle plan_type updates
+  if (data.plan_type) {
+    const monthlyPrice = data.plan_type === 'free' ? 0 : data.plan_type === 'pro' ? 1 : 5
+    const result = await sql`
+      UPDATE cloudynic_subscriptions
+      SET plan_type = ${data.plan_type}, monthly_cost = ${monthlyPrice}, status = ${data.status || 'active'}, updated_at = NOW()
+      WHERE id = ${subscriptionId}
+      RETURNING *
+    `
+    return result[0] as Subscription
+  }
+  
+  // Handle payment updates
+  const result = await sql`
     UPDATE cloudynic_subscriptions
-    SET ${updates.join(', ')}, updated_at = NOW()
-    WHERE id = $${paramCount}
+    SET razorpay_order_id = ${data.razorpay_order_id}, razorpay_payment_id = ${data.razorpay_payment_id}, status = ${data.status || 'active'}, updated_at = NOW()
+    WHERE id = ${subscriptionId}
     RETURNING *
   `
-
-  const result = await sql(query, values)
   return result[0] as Subscription
 }
 

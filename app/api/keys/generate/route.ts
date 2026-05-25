@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from '@neondatabase/serverless'
 import crypto from 'crypto'
 
 function generateApiKey(): string {
@@ -22,15 +21,18 @@ export async function POST(request: NextRequest) {
     const keyName = body.key_name || `API Key ${new Date().toLocaleDateString()}`
 
     const newApiKey = generateApiKey()
-    const dbSql = sql(process.env.DATABASE_URL!)
 
-    const result = await dbSql`
-      INSERT INTO cloudynic_api_keys (user_id, api_key, key_name, is_active)
-      VALUES (${user.id}, ${newApiKey}, ${keyName}, true)
-      RETURNING id, api_key, key_name, created_at, is_active
-    `
+    const { data, error } = await supabase
+      .from('cloudynic_api_keys')
+      .insert({
+        user_id: user.id,
+        api_key: newApiKey,
+        key_name: keyName,
+        is_active: true,
+      })
+      .select()
 
-    if (result.length === 0) {
+    if (error || !data) {
       return NextResponse.json(
         { error: 'Failed to generate API key' },
         { status: 500 }
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      key: result[0],
+      key: data[0],
       message: 'API key generated successfully. Save it somewhere safe!',
     })
   } catch (error) {
