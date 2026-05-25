@@ -144,11 +144,10 @@ export default function Page() {
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs px-4 py-2 border-2 ${
-                      msg.role === 'user'
+                    className={`max-w-xs px-4 py-2 border-2 ${msg.role === 'user'
                         ? 'bg-foreground text-background border-foreground'
                         : 'bg-card text-foreground border-foreground'
-                    }`}
+                      }`}
                   >
                     <p className="text-sm">{msg.content}</p>
                   </div>
