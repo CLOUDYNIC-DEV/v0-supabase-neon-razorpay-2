@@ -12,7 +12,7 @@ export default function About() {
         <div className="mb-16">
           <h1 className="text-5xl font-bold mb-6">ABOUT CLOUDYNIC</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">
-            CloudyNIC is building the future of accessible AI. We believe powerful AI should be affordable, customizable, and easy to use for everyone.
+            Cloudynic is building the future of accessible AI. We believe powerful AI should be affordable, customizable, and easy to use for everyone.
           </p>
         </div>
 
@@ -22,10 +22,10 @@ export default function About() {
 
           <div className="grid md:grid-cols-2 gap-12">
             <div className="border-2 border-foreground p-8">
-              <h3 className="text-2xl font-bold mb-2">ASHIN</h3>
+              <h3 className="text-2xl font-bold mb-2">ASHWIN</h3>
               <p className="text-sm text-muted-foreground mb-4 font-bold">FOUNDER & OWNER</p>
               <p className="leading-relaxed mb-4">
-                Ashin started CloudyNIC with a vision to democratize AI technology. With years of experience in building scalable systems, Ashin leads the company&apos;s strategic direction and ensures our platform remains affordable and accessible to all.
+                Ashwin started Cloudynic with a vision to democratize AI technology. With years of experience in building scalable systems, Ashwin leads the company&apos;s strategic direction and ensures our platform remains affordable and accessible to all.
               </p>
               <p className="text-muted-foreground text-sm">
                 Passionate about open-source and community-driven development.
@@ -56,7 +56,7 @@ export default function About() {
               Starting as a side project to explore LLM APIs, CloudyNIC quickly evolved into a conviction that the future of AI requires democratization. We decided to build a platform that combines affordability with simplicity, allowing developers, startups, and enterprises to harness AI without the traditional barriers.
             </p>
             <p>
-              Today, CloudyNIC serves thousands of users across the globe. Our commitment remains unchanged: provide the best AI access at the best price, with the best support. We&apos;re not here to lock anyone in with expensive plans or confusing pricing. We&apos;re here to empower you to build with AI.
+              Today, Cloudynic serves thousands of users across the globe. Our commitment remains unchanged: provide the best AI access at the best price, with the best support. We&apos;re not here to lock anyone in with expensive plans or confusing pricing. We&apos;re here to empower you to build with AI.
             </p>
           </div>
         </div>
