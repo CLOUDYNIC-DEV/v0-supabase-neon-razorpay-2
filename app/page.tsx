@@ -16,7 +16,7 @@ export default function Page() {
       id: '0',
       role: 'assistant',
       content:
-        'Welcome to CloudyNIC AI! I&apos;m your AI assistant. You have 3 free demo messages per IP address. Sign up to unlock unlimited usage with our affordable pricing plans.',
+        'Welcome to Cloudynic AI! I&apos;m your AI assistant. You have 3 free demo messages per IP address. Sign up to unlock unlimited usage with our affordable pricing plans.',
     },
   ])
   const [input, setInput] = useState('')
