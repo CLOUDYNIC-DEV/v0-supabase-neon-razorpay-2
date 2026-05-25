@@ -266,9 +266,6 @@ export default function Page() {
                   </Link>
                 </li>
               </ul>
-            </div>
-            <div>
-            </ul>
           </div>
         </div>
         <div className="border-t border-background pt-8 text-center text-sm opacity-75">
