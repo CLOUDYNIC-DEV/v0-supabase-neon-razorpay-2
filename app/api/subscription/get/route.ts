@@ -12,25 +12,41 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: subscriptions, error } = await supabase
-      .from('cloudynic_subscriptions')
+    const { data: subscription, error } = await supabase
+      .from('subscriptions')
       .select('*')
       .eq('user_id', user.id)
+      .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
+      .single()
 
-    if (error || !subscriptions || subscriptions.length === 0) {
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching subscription:', error)
       return NextResponse.json({ subscription: null })
     }
 
+    const planCosts: Record<string, number> = {
+      free: 0,
+      pro: 1,
+      pro_max: 9,
+    }
+
     return NextResponse.json({
-      subscription: subscriptions[0],
+      subscription: subscription ? {
+        plan_type: subscription.plan_type,
+        status: subscription.status,
+        monthly_cost: planCosts[subscription.plan_type] || 0,
+        created_at: subscription.created_at,
+        renewal_date: subscription.end_date,
+        razorpay_order_id: subscription.razorpay_order_id,
+        razorpay_payment_id: subscription.razorpay_payment_id,
+      } : null,
     })
   } catch (error) {
     console.error('Subscription fetch error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { subscription: null }
     )
   }
 }

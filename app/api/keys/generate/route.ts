@@ -1,77 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
+import { createClient } from '@/lib/supabase/server'
+import { generateApiKey, getOrCreateUser } from '@/lib/api-utils'
 
-// In-memory API key storage (in production, use database)
-const apiKeys = new Map<string, { key: string; name: string; created: number; userId: string }>()
-
-function generateApiKey(): string {
-  return `cnk_${crypto.randomBytes(32).toString('hex')}`
-}
-
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json().catch(() => ({}))
-    const keyName = body.key_name || `API Key ${new Date().toLocaleDateString()}`
-    const userId = body.user_id || `user_${crypto.randomBytes(8).toString('hex')}`
+    const supabase = await createClient()
 
-    const newApiKey = generateApiKey()
-    const createdAt = Date.now()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-    // Store in memory
-    apiKeys.set(newApiKey, {
-      key: newApiKey,
-      name: keyName,
-      created: createdAt,
-      userId,
-    })
+    if (!user || !user.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized - user not found' },
+        { status: 401 },
+      )
+    }
 
-    const keyData = {
-      id: crypto.randomBytes(16).toString('hex'),
-      api_key: newApiKey,
-      key_name: keyName,
-      created_at: new Date(createdAt).toISOString(),
-      is_active: true,
+    // Ensure user exists in public.users table
+    await getOrCreateUser(user.id, user.email)
+
+    // Get user's subscription to determine plan tier
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('plan_type')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    const planTier = subscription?.plan_type || 'free'
+
+    // Generate new API key
+    const apiKey = await generateApiKey()
+
+    // Store in database
+    const { data: newKey, error } = await supabase
+      .from('api_keys')
+      .insert({
+        user_id: user.id,
+        key: apiKey,
+        name: `API Key ${new Date().toLocaleDateString()}`,
+        plan_tier: planTier,
+        is_active: true,
+      })
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('Error storing API key:', error)
+      return NextResponse.json(
+        { error: 'Failed to generate API key' },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({
-      key: keyData,
-      message: 'API key generated successfully. Save it somewhere safe! Use it with: /api/prompt?key=YOUR_KEY&prompt=YOUR_PROMPT',
-      usage: {
-        free_get: '/api/free-prompt?prompt=hello',
-        paid_get: '/api/prompt?key=YOUR_API_KEY&prompt=hello',
-        paid_post: 'POST /api/prompt with {prompt: string, api_key: string}',
+      key: {
+        id: newKey.id,
+        api_key: newKey.key,
+        key_name: newKey.name,
+        created_at: newKey.created_at,
+        is_active: newKey.is_active,
       },
     })
   } catch (error) {
-    console.error('API key generation error:', error)
+    console.error('Error generating API key:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: 'Failed to generate API key' },
+      { status: 500 },
     )
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const apiKey = request.nextUrl.searchParams.get('key')
-
-    if (!apiKey) {
-      return NextResponse.json({ error: 'Missing key parameter' }, { status: 400 })
-    }
-
-    const keyRecord = apiKeys.get(apiKey)
-
-    if (!keyRecord) {
-      return NextResponse.json({ error: 'API key not found' }, { status: 404 })
-    }
-
-    return NextResponse.json({
-      key_name: keyRecord.name,
-      created_at: new Date(keyRecord.created).toISOString(),
-      is_active: true,
-    })
-  } catch (error) {
-    console.error('API key lookup error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

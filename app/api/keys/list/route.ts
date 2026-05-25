@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: keys, error } = await supabase
-      .from('cloudynic_api_keys')
-      .select('id, api_key, key_name, created_at, is_active')
+      .from('api_keys')
+      .select('id, key, name, created_at, is_active')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -23,7 +23,13 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      keys: keys || [],
+      keys: (keys || []).map((key) => ({
+        id: key.id,
+        api_key: key.key,
+        key_name: key.name,
+        created_at: key.created_at,
+        is_active: key.is_active,
+      })),
     })
   } catch (error) {
     console.error('API keys fetch error:', error)

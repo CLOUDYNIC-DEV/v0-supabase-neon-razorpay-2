@@ -226,9 +226,23 @@ export default function Dashboard() {
                       <p className="text-sm font-bold text-muted-foreground mb-1">
                         {key.key_name || 'Unnamed Key'}
                       </p>
-                      <p className="font-mono text-xs break-all bg-background p-2 border border-foreground">
+                      <p className="font-mono text-xs break-all bg-background p-2 border border-foreground mb-2">
                         {key.api_key}
                       </p>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(key.api_key)
+                          const btn = event?.target as HTMLButtonElement
+                          const originalText = btn.textContent
+                          btn.textContent = '✓ COPIED'
+                          setTimeout(() => {
+                            btn.textContent = originalText
+                          }, 1500)
+                        }}
+                        className="text-xs px-2 py-1 border border-foreground hover:bg-foreground hover:text-background transition-all"
+                      >
+                        COPY
+                      </button>
                     </div>
                     <span
                       className={`px-3 py-1 font-bold text-xs whitespace-nowrap border-2 border-foreground ${
@@ -253,35 +267,58 @@ export default function Dashboard() {
           {/* Setup Instructions */}
           <div className="mt-8 border-t-2 border-foreground pt-8">
             <h3 className="text-2xl font-bold mb-4">SETUP INSTRUCTIONS</h3>
-            <div className="bg-card border-2 border-foreground p-6 space-y-4">
+            <div className="bg-card border-2 border-foreground p-6 space-y-6">
               <div>
-                <p className="font-bold mb-2">FOR AUTHENTICATED REQUESTS (Pro/Pro Max):</p>
+                <p className="font-bold mb-2">API ENDPOINT:</p>
                 <p className="text-sm font-mono bg-background p-3 border border-foreground break-all">
-                  GET https://cloudynic.com/api/prompt?query=YOUR_QUERY&key=YOUR_API_KEY
+                  https://cloudynic.com/api/v1/prompt
                 </p>
               </div>
 
               <div>
-                <p className="font-bold mb-2">FOR FREE TIER REQUESTS:</p>
-                <p className="text-sm font-mono bg-background p-3 border border-foreground break-all">
-                  GET https://cloudynic.com/api/prompt?query=YOUR_QUERY
-                </p>
+                <p className="font-bold mb-2">GET REQUEST (Simple):</p>
+                <code className="text-xs bg-background p-3 border border-foreground block overflow-x-auto">
+                  {`GET https://cloudynic.com/api/v1/prompt?prompt=hello&key=YOUR_API_KEY`}
+                </code>
+              </div>
+
+              <div>
+                <p className="font-bold mb-2">POST REQUEST (JSON):</p>
+                <code className="text-xs bg-background p-3 border border-foreground block overflow-x-auto">
+                  {`curl -X POST https://cloudynic.com/api/v1/prompt \\
+  -H "Content-Type: application/json" \\
+  -d '{"prompt": "Your question", "key": "YOUR_API_KEY"}'`}
+                </code>
               </div>
 
               <div>
                 <p className="font-bold mb-2">RATE LIMITS:</p>
                 <ul className="text-sm space-y-2 ml-4 list-disc">
-                  <li>Free: 1 request/minute, 100 requests/day</li>
+                  <li>Free: 1 request/minute, 100 requests/day (IP-based)</li>
                   <li>Pro: 30 requests/minute, 10,000 requests/day</li>
                   <li>Pro Max: Unlimited requests</li>
                 </ul>
               </div>
 
               <div>
-                <p className="font-bold mb-2">EXAMPLE CURL REQUEST:</p>
+                <p className="font-bold mb-2">JAVASCRIPT EXAMPLE:</p>
                 <code className="text-xs bg-background p-3 border border-foreground block overflow-x-auto">
-                  {`curl "https://cloudynic.com/api/prompt?query=Hello&key=YOUR_API_KEY"`}
+                  {`const response = await fetch('https://cloudynic.com/api/v1/prompt', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ prompt: 'Your question', key: 'YOUR_API_KEY' })
+});
+const data = await response.json();
+console.log(data.response);`}
                 </code>
+              </div>
+
+              <div>
+                <p className="font-bold mb-2">FREE TIER (NO KEY NEEDED):</p>
+                <code className="text-xs bg-background p-3 border border-foreground block overflow-x-auto">
+                  {`GET https://cloudynic.com/api/v1/prompt?prompt=hello`}
+                </code>
+                <p className="text-xs text-muted-foreground mt-2">Rate limited to 1 request/minute per IP address</p>
               </div>
             </div>
           </div>

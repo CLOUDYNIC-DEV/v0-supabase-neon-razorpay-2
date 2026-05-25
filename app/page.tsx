@@ -25,14 +25,17 @@ export default function Page() {
   const [canChat, setCanChat] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, 0)
-  }
-
+  // Scroll to bottom only for user messages, not AI responses
   useEffect(() => {
-    scrollToBottom()
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1]
+      // Only auto-scroll if user sent the message
+      if (lastMessage.role === 'user') {
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }, 0)
+      }
+    }
   }, [messages])
 
   const handleSendMessage = async (e: React.FormEvent) => {

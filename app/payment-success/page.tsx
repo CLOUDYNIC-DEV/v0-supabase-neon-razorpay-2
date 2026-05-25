@@ -73,49 +73,83 @@ ${apiKey}
 
 ## Using the API
 
-### Free Plan
-Use the free endpoint without authentication:
+### GET Request (Simple)
 \`\`\`
-GET https://cloudynic.com/prompt?message=Hello
+GET https://cloudynic.com/api/v1/prompt?prompt=What%20is%20AI&key=${apiKey}
 \`\`\`
 
-**Rate Limits:**
+**Response:** Raw text response
+
+### POST Request (JSON)
+\`\`\`bash
+curl -X POST https://cloudynic.com/api/v1/prompt \\
+  -H "Content-Type: application/json" \\
+  -d '{"prompt": "Your question here", "key": "${apiKey}"}'
+\`\`\`
+
+## Rate Limits by Plan
+
+**Free Plan:**
 - 1 request per minute
 - 100 requests per day
+- No API key required (IP-based)
 
-### Paid Plans (Pro & Pro Max)
-Use your API key for authentication:
-\`\`\`
-POST https://cloudynic.com/api/chat
-Authorization: Bearer ${apiKey}
-Content-Type: application/json
+**Pro Plan ($1/month):**
+- 30 requests per minute
+- 10,000 requests per day
+- Your API Key: ${apiKey}
 
-{
-  "message": "Your message here"
-}
-\`\`\`
+**Pro Max Plan ($9/month):**
+- Unlimited requests
+- Priority support
+- Your API Key: ${apiKey}
 
-## Integration Example
+## JavaScript Example
 
 \`\`\`javascript
 const apiKey = '${apiKey}';
 
-async function askCloudyNIC(message) {
-  const response = await fetch('https://cloudynic.com/api/chat', {
+async function askCloudyNIC(prompt) {
+  const response = await fetch('https://cloudynic.com/api/v1/prompt', {
     method: 'POST',
     headers: {
-      'Authorization': \`Bearer \${apiKey}\`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ message })
+    body: JSON.stringify({ 
+      prompt: prompt,
+      key: apiKey 
+    })
   });
   
-  return response.json();
+  const data = await response.json();
+  console.log(data.response);
 }
+
+askCloudyNIC('Hello, how are you?');
 \`\`\`
 
-## Support
+## Python Example
+
+\`\`\`python
+import requests
+import json
+
+api_key = '${apiKey}'
+prompt = 'What is machine learning?'
+
+response = requests.post(
+    'https://cloudynic.com/api/v1/prompt',
+    headers={'Content-Type': 'application/json'},
+    data=json.dumps({'prompt': prompt, 'key': api_key})
+)
+
+print(response.text)
+\`\`\`
+
+## Support & Documentation
 Email: hello@cloudynic.com
+Docs: https://cloudynic.com/docs
+Status: https://cloudynic.com/status
   `.trim()
 
   return (
@@ -131,18 +165,33 @@ Email: hello@cloudynic.com
 
           <div className="bg-card border-2 border-foreground p-6 mb-8">
             <h2 className="text-xl font-bold mb-4">YOUR API KEY</h2>
-            <div className="bg-foreground text-background p-4 font-mono text-sm break-all mb-4">
-              {apiKey}
+            <div className="bg-foreground text-background p-4 font-mono text-sm break-all mb-4 relative">
+              <span id="api-key-text">{apiKey}</span>
             </div>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(apiKey)
-                alert('API key copied to clipboard!')
-              }}
-              className="px-4 py-2 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all"
-            >
-              COPY API KEY
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(apiKey)
+                  const btn = event?.target as HTMLButtonElement
+                  const originalText = btn.textContent
+                  btn.textContent = '✓ COPIED!'
+                  setTimeout(() => {
+                    btn.textContent = originalText
+                  }, 2000)
+                }}
+                className="px-4 py-2 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all"
+              >
+                COPY API KEY
+              </button>
+              <a
+                href={`https://cloudynic.com/api/v1/prompt?prompt=hello&key=${apiKey}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-all text-center"
+              >
+                TEST API
+              </a>
+            </div>
           </div>
 
           <div className="border-2 border-foreground p-6 mb-8">
