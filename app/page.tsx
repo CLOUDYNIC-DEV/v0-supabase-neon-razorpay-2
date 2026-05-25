@@ -16,7 +16,7 @@ export default function Page() {
       id: '0',
       role: 'assistant',
       content:
-        'Welcome to Cloudynic AI! I am your AI assistant. You have 2 free demo messages per IP address. Sign up to unlock unlimited usage with our affordable pricing plans.',
+        'Welcome to Cloudynic AI! I am your AI assistant. You have 3 free demo messages per IP address. Sign up to unlock unlimited usage with our affordable pricing plans.',
     },
   ])
   const [input, setInput] = useState('')
@@ -118,10 +118,10 @@ export default function Page() {
             <h1 className="text-6xl font-bold mb-6 leading-tight animate-fade-in-up">
               AFFORDABLE AI FOR ALL
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 leading-relaxed animate-fade-in-up" style={{animationDelay: '0.1s'}}>
+            <p className="text-xl text-muted-foreground mb-8 leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
               Powerful, customizable AI platform built for everyone. Simple API integration with flexible pricing. No hidden fees.
             </p>
-            <div className="flex gap-4 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+            <div className="flex gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
               <Link
                 href="/pricing"
                 className="px-8 py-4 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-smooth hover:scale-105"
@@ -152,8 +152,8 @@ export default function Page() {
                 >
                   <div
                     className={`max-w-xs px-4 py-3 border-2 rounded-sm ${msg.role === 'user'
-                        ? 'bg-foreground text-background border-foreground font-medium'
-                        : 'bg-card text-foreground border-foreground shadow-sm'
+                      ? 'bg-foreground text-background border-foreground font-medium'
+                      : 'bg-card text-foreground border-foreground shadow-sm'
                       }`}
                   >
                     <p className="text-sm leading-relaxed">{msg.content}</p>
@@ -207,11 +207,11 @@ export default function Page() {
               <h3 className="text-xl font-bold mb-3">AFFORDABLE</h3>
               <p className="text-muted-foreground">Start free with 100 requests per day. Scale with our Pro and Pro Max plans at just $1 and $5/month.</p>
             </div>
-            <div className="border-2 border-foreground p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105" style={{animationDelay: '0.1s'}}>
+            <div className="border-2 border-foreground p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105" style={{ animationDelay: '0.1s' }}>
               <h3 className="text-xl font-bold mb-3">CUSTOMIZABLE</h3>
               <p className="text-muted-foreground">Build exactly what you need with our flexible API. Full control over parameters and model behavior.</p>
             </div>
-            <div className="border-2 border-foreground p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105" style={{animationDelay: '0.2s'}}>
+            <div className="border-2 border-foreground p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105" style={{ animationDelay: '0.2s' }}>
               <h3 className="text-xl font-bold mb-3">SIMPLE</h3>
               <p className="text-muted-foreground">RESTful API with clear documentation. Get started in minutes, not hours.</p>
             </div>
