@@ -65,7 +65,7 @@ export default function Pricing() {
           {/* Pro Plan */}
           <div className="border-4 border-foreground p-8 flex flex-col bg-card ring-2 ring-foreground ring-offset-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <h2 className="text-2xl font-bold mb-2">PRO</h2>
-            <p className="text-muted-foreground mb-6">For growing applications</p>
+            <p className="text-muted-foreground mb-6">For low range company</p>
 
             <div className="mb-6">
               <span className="text-4xl font-bold">$1.99</span>
@@ -90,10 +90,6 @@ export default function Pricing() {
                 <span>Priority email support</span>
               </li>
               <li className="flex gap-3">
-                <span className="font-bold">✓</span>
-                <span>Usage analytics</span>
-              </li>
-              <li className="flex gap-3">
                 <span className="text-muted-foreground">✗</span>
                 <span className="text-muted-foreground">Custom model</span>
               </li>
@@ -113,7 +109,7 @@ export default function Pricing() {
               POPULAR
             </div>
             <h2 className="text-2xl font-bold mb-2">PRO MAX</h2>
-            <p className="text-muted-foreground mb-6">For enterprise needs</p>
+            <p className="text-muted-foreground mb-6">For growing companies</p>
 
             <div className="mb-6">
               <span className="text-4xl font-bold">$9.99</span>
@@ -139,10 +135,6 @@ export default function Pricing() {
               </li>
               <li className="flex gap-3">
                 <span className="font-bold">✓</span>
-                <span>Advanced analytics</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold">✓</span>
                 <span>Custom model support</span>
               </li>
             </ul>
@@ -160,11 +152,6 @@ export default function Pricing() {
         <div className="mt-20 border-t-4 border-foreground pt-16">
           <h2 className="text-4xl font-bold mb-12 text-center">FAQ</h2>
           <div className="max-w-2xl mx-auto space-y-6">
-            <div className="border-2 border-foreground p-6">
-              <h3 className="font-bold mb-2">Can I change my plan?</h3>
-              <p className="text-muted-foreground">
-                Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.
-              </p>
             </div>
             <div className="border-2 border-foreground p-6">
               <h3 className="font-bold mb-2">What happens when I reach my daily limit?</h3>
@@ -175,7 +162,7 @@ export default function Pricing() {
             <div className="border-2 border-foreground p-6">
               <h3 className="font-bold mb-2">Is there a setup fee?</h3>
               <p className="text-muted-foreground">
-                No hidden fees. You only pay what&apos;s listed. Cancel anytime.
+                No hidden fees. You only pay what&apos;s listed.
               </p>
             </div>
             <div className="border-2 border-foreground p-6">
