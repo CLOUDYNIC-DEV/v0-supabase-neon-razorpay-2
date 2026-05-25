@@ -15,10 +15,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Create order
+    // Create order (amount in cents for USD)
     const order = await razorpay.orders.create({
-      amount: amount * 100, // Amount in paise
-      currency: 'INR',
+      amount: Math.round(amount * 100), // Amount in cents
+      currency: 'USD',
       receipt: `${user_id}-${Date.now()}`,
       notes: {
         plan,

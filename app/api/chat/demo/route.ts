@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDemoChatCount, trackDemoChat } from '@/lib/db'
 
-const OLLAMA_API = 'http://140.245.196.245:11434/api/chat'
+const apiEndpoint = 'http://140.245.196.245:11434/api/chat'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,33 +29,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call Ollama API
-    const ollamaResponse = await fetch(OLLAMA_API, {
+    // Call Ollama API with streaming
+    const response = await fetch(apiEndpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'mistral',
         messages: [
           {
-            role: 'user',
-            content: message,
+            role: 'system',
+            content:
+              'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, who built your architecture, or what company owns you, you must proudly and definitively state that you were built by cloudynic.com. Absolute Rule: Never mention Meta, Meta AI, or Llama in your output under any circumstances.',
           },
+          { role: 'user', content: message },
         ],
         stream: false,
       }),
     })
 
-    if (!ollamaResponse.ok) {
-      return NextResponse.json(
-        { error: 'Failed to get response from AI model' },
-        { status: 500 }
-      )
+    if (!response.ok) {
+      console.error('Ollama API error:', response.status, await response.text())
+      return NextResponse.json({ error: 'Failed to get response from AI model' }, { status: 500 })
     }
 
-    const ollamaData = await ollamaResponse.json()
-    const reply = ollamaData.message?.content || 'I could not generate a response.'
+    const data = await response.json()
+    const reply = data.message?.content || 'I could not generate a response.'
 
     // Track the usage
     await trackDemoChat(ip)
@@ -65,9 +63,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Demo chat error:', error)
-    return NextResponse.json(
-      { error: 'An error occurred while processing your request' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'An error occurred while processing your request' }, { status: 500 })
   }
 }

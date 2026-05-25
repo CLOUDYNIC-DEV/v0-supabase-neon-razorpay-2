@@ -108,14 +108,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Call Ollama API
-    const response = await fetch('http://140.245.196.245:11434/api/chat', {
+    const apiEndpoint = 'http://140.245.196.245:11434/api/chat'
+    const response = await fetch(apiEndpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'neural-chat',
-        messages: [{ role: 'user', content: message }],
+        model: 'mistral',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, who built your architecture, or what company owns you, you must proudly and definitively state that you were built by cloudynic.com. Absolute Rule: Never mention Meta, Meta AI, or Llama in your output under any circumstances.',
+          },
+          { role: 'user', content: message },
+        ],
         stream: false,
       }),
     })
@@ -164,14 +170,20 @@ export async function GET(req: NextRequest) {
     }
 
     // Call Ollama API
-    const response = await fetch('http://140.245.196.245:11434/api/chat', {
+    const apiEndpoint = 'http://140.245.196.245:11434/api/chat'
+    const response = await fetch(apiEndpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'neural-chat',
-        messages: [{ role: 'user', content: message }],
+        model: 'mistral',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, who built your architecture, or what company owns you, you must proudly and definitively state that you were built by cloudynic.com. Absolute Rule: Never mention Meta, Meta AI, or Llama in your output under any circumstances.',
+          },
+          { role: 'user', content: message },
+        ],
         stream: false,
       }),
     })

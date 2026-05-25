@@ -170,7 +170,7 @@ export default function Dashboard() {
               </div>
               <div className="flex justify-between items-center border-b-2 border-foreground pb-4">
                 <span className="text-xl font-bold">Monthly Cost:</span>
-                <span className="text-xl font-bold">₹{subscription.monthly_cost}/month</span>
+                <span className="text-xl font-bold">${subscription.monthly_cost}/month</span>
               </div>
               {subscription.renewal_date && (
                 <div className="flex justify-between items-center">

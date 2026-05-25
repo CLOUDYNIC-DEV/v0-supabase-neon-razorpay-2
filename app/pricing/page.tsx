@@ -71,7 +71,7 @@ export default function Pricing() {
             <p className="text-muted-foreground mb-6">For growing applications</p>
 
             <div className="mb-6">
-              <span className="text-4xl font-bold">$1</span>
+              <span className="text-4xl font-bold">$1.99</span>
               <span className="text-muted-foreground">/month</span>
             </div>
 
@@ -116,7 +116,7 @@ export default function Pricing() {
             <p className="text-muted-foreground mb-6">For enterprise needs</p>
 
             <div className="mb-6">
-              <span className="text-4xl font-bold">$5</span>
+              <span className="text-4xl font-bold">$9.99</span>
               <span className="text-muted-foreground">/month</span>
             </div>
 

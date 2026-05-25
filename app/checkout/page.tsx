@@ -7,8 +7,8 @@ import Header from '@/components/header'
 
 const PLANS = {
   free: { name: 'Free', price: 0, requests_per_minute: 1, requests_per_day: 100 },
-  pro: { name: 'Pro', price: 100, requests_per_minute: 30, requests_per_day: 10000 },
-  pro_max: { name: 'Pro Max', price: 500, requests_per_minute: 999, requests_per_day: 999999 },
+  pro: { name: 'Pro', price: 1.99, requests_per_minute: 30, requests_per_day: 10000 },
+  pro_max: { name: 'Pro Max', price: 9.99, requests_per_minute: 999, requests_per_day: 999999 },
 }
 
 declare global {
@@ -82,8 +82,8 @@ export default function CheckoutPage() {
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: plan.price * 100,
-        currency: 'INR',
+        amount: Math.round(plan.price * 100),
+        currency: 'USD',
         name: 'CloudyNIC AI',
         description: `${plan.name} Plan Subscription`,
         order_id: orderData.orderId,
