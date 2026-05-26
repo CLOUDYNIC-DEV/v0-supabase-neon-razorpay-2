@@ -118,7 +118,7 @@ export default function PrivacyPage() {
           <div className="bg-secondary border-2 border-foreground p-6 my-8">
             <p className="font-bold text-lg mb-2">🛡️ SECURITY GUARANTEE</p>
             <p className="text-sm leading-relaxed">
-              CloudyNIC uses encryption (SSL/TLS), secure password hashing (bcrypt), and industry-best practices for data protection. However, no system is 100% secure. If you suspect a security breach, contact us immediately at hello@cloudynic.com.
+              Cloudynic uses encryption (SSL/TLS), secure password hashing (bcrypt), and industry-best practices for data protection. However, no system is 100% secure. If you suspect a security breach, contact us immediately at hello@cloudynic.com.
             </p>
           </div>
 

@@ -17,10 +17,10 @@ export default function TermsPage() {
           <div className="border-l-4 border-foreground pl-6">
             <h2 className="text-2xl font-bold mb-3">1. DISCLAIMER - AI GENERATED CONTENT</h2>
             <p className="mb-4 leading-relaxed">
-              CloudyNIC AI uses artificial intelligence models to generate responses. AI outputs may contain errors, inaccuracies, biases, or harmful content. Users are solely responsible for verifying any information before taking action based on our AI responses.
+              Cloudynic AI uses artificial intelligence models to generate responses. AI outputs may contain errors, inaccuracies, biases, or harmful content. Users are solely responsible for verifying any information before taking action based on our AI responses.
             </p>
             <p className="leading-relaxed">
-              <strong>DO NOT rely on CloudyNIC AI for:</strong>
+              <strong>DO NOT rely on Cloudynic AI for:</strong>
             </p>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>Medical or legal advice</li>
@@ -52,21 +52,21 @@ export default function TermsPage() {
           <div className="border-l-4 border-foreground pl-6">
             <h2 className="text-2xl font-bold mb-3">4. LIMITATION OF LIABILITY</h2>
             <p className="leading-relaxed">
-              CloudyNIC is not liable for any damages, losses, or consequences arising from the use of our service, including but not limited to: financial losses, data loss, business interruption, or indirect damages.
+              Cloudynic is not liable for any damages, losses, or consequences arising from the use of our service, including but not limited to: financial losses, data loss, business interruption, or indirect damages.
             </p>
           </div>
 
           <div className="border-l-4 border-foreground pl-6">
             <h2 className="text-2xl font-bold mb-3">5. SERVICE AVAILABILITY</h2>
             <p className="leading-relaxed">
-              We provide the service on a best-effort basis. CloudyNIC may experience downtime, rate limiting, or service interruptions without liability. We reserve the right to modify or discontinue the service with notice.
+              We provide the service on a best-effort basis. Cloudynic may experience downtime, rate limiting, or service interruptions without liability. We reserve the right to modify or discontinue the service with notice.
             </p>
           </div>
 
           <div className="border-l-4 border-foreground pl-6">
             <h2 className="text-2xl font-bold mb-3">6. INTELLECTUAL PROPERTY</h2>
             <p className="leading-relaxed">
-              The CloudyNIC platform and underlying AI models are proprietary. Users retain rights to their input data but grant CloudyNIC a license to process it. Generated content may be similar to existing works due to training data.
+              The Cloudynic platform and underlying AI models are proprietary. Users retain rights to their input data but grant Cloudynic a license to process it. Generated content may be similar to existing works due to training data.
             </p>
           </div>
 
@@ -80,7 +80,7 @@ export default function TermsPage() {
           <div className="bg-secondary border-2 border-foreground p-6 my-8">
             <p className="font-bold text-lg mb-2">⚠️ IMPORTANT LEGAL DISCLAIMER</p>
             <p className="text-sm leading-relaxed">
-              By using CloudyNIC AI, you acknowledge and accept that you use this service entirely at your own risk. Always verify AI-generated content independently. CloudyNIC cannot and should not be used for professional advice in legal, medical, financial, or safety-critical domains. In case of any doubt, consult with qualified human professionals.
+              By using Cloudynic AI, you acknowledge and accept that you use this service entirely at your own risk. Always verify AI-generated content independently. CloudyNIC cannot and should not be used for professional advice in legal, medical, financial, or safety-critical domains. In case of any doubt, consult with qualified human professionals.
             </p>
           </div>
 
