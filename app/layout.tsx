@@ -9,7 +9,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: 'Cloudynic AI - Affordable & Customizable AI For All',
   description: 'Powerful, customizable AI platform for everyone. Simple API integration with flexible pricing plans.',
-  generator: 'v0.app',
+  generator: 'cloudynic',
   icons: {
     icon: [
       {
