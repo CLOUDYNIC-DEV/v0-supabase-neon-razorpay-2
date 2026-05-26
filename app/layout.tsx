@@ -7,7 +7,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'CloudyNIC AI - Affordable & Customizable AI For All',
+  title: 'Cloudynic AI - Affordable & Customizable AI For All',
   description: 'Powerful, customizable AI platform for everyone. Simple API integration with flexible pricing plans.',
   generator: 'v0.app',
   icons: {
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     apple: '/apple-icon.png',
   },
   openGraph: {
-    title: 'CloudyNIC AI',
+    title: 'Cloudynic AI',
     description: 'Affordable & Customizable AI For All',
     type: 'website',
   },
