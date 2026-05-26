@@ -152,24 +152,24 @@ export default function Pricing() {
         <div className="mt-20 border-t-4 border-foreground pt-16">
           <h2 className="text-4xl font-bold mb-12 text-center">FAQ</h2>
           <div className="max-w-2xl mx-auto space-y-6">
-            </div>
-            <div className="border-2 border-foreground p-6">
-              <h3 className="font-bold mb-2">What happens when I reach my daily limit?</h3>
-              <p className="text-muted-foreground">
-                You&apos;ll receive a 429 (Too Many Requests) error. Limits reset daily at midnight UTC.
-              </p>
-            </div>
-            <div className="border-2 border-foreground p-6">
-              <h3 className="font-bold mb-2">Is there a setup fee?</h3>
-              <p className="text-muted-foreground">
-                No hidden fees. You only pay what&apos;s listed.
-              </p>
-            </div>
-            <div className="border-2 border-foreground p-6">
-              <h3 className="font-bold mb-2">Do you offer custom pricing?</h3>
-              <p className="text-muted-foreground">
-                For enterprise needs, contact us at hello@cloudynic.com for custom pricing options.
-              </p>
+          </div>
+          <div className="border-2 border-foreground p-6">
+            <h3 className="font-bold mb-2">What happens when I reach my daily limit?</h3>
+            <p className="text-muted-foreground">
+              You&apos;ll receive a 429 (Too Many Requests) error. Limits reset daily at midnight UTC.
+            </p>
+          </div>
+          <div className="border-2 border-foreground p-6">
+            <h3 className="font-bold mb-2">Is there a setup fee?</h3>
+            <p className="text-muted-foreground">
+              No hidden fees. You only pay what&apos;s listed.
+            </p>
+          </div>
+          <div className="border-2 border-foreground p-6">
+            <h3 className="font-bold mb-2">Do you offer custom pricing?</h3>
+            <p className="text-muted-foreground">
+              For enterprise needs, contact us at hello@cloudynic.com for custom pricing options.
+            </p>
           </div>
         </div>
       </section>
