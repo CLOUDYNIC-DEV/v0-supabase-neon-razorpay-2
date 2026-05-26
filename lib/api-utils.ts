@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import crypto from 'crypto'
 
+declare global {
+  var freeIpLimits: Map<string, { count: number; resetTime: number }> | undefined
+}
+
 export async function generateApiKey(): Promise<string> {
   // Generate a 32-character API key
   return `sk_${crypto.randomBytes(24).toString('hex')}`
@@ -38,27 +42,56 @@ export async function checkRateLimit(
   userId: string,
   planTier: string,
 ): Promise<boolean> {
-  const supabase = await createClient()
-
-  // Get usage in the last minute
-  const oneMinuteAgo = new Date(Date.now() - 60000).toISOString()
-
-  const { count, error } = await supabase
-    .from('api_usage')
-    .select('id', { count: 'exact' })
-    .eq('user_id', userId)
-    .gte('created_at', oneMinuteAgo)
-
-  if (error) return false
-
-  // Rate limits per tier
-  const limits: Record<string, number> = {
-    free: 1,
-    pro: 30,
-    pro_max: 999999, // Effectively unlimited
+  // For free tier (IP-based), use in-memory tracking
+  if (planTier === 'free' && userId.startsWith('ip_')) {
+    // Check in-memory free tier limit (1 per minute per IP)
+    if (!global.freeIpLimits) {
+      global.freeIpLimits = new Map<string, { count: number; resetTime: number }>()
+    }
+    
+    const now = Date.now()
+    const record = global.freeIpLimits.get(userId)
+    
+    if (!record || now > record.resetTime) {
+      // Reset counter
+      global.freeIpLimits.set(userId, { count: 1, resetTime: now + 60000 })
+      return true
+    }
+    
+    if (record.count >= 1) {
+      return false
+    }
+    
+    record.count += 1
+    return true
   }
 
-  return (count || 0) < (limits[planTier] || 1)
+  // For authenticated users (pro/pro_max), check database
+  try {
+    const supabase = await createClient()
+
+    // Get usage in the last minute
+    const oneMinuteAgo = new Date(Date.now() - 60000).toISOString()
+
+    const { count, error } = await supabase
+      .from('api_usage')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userId)
+      .gte('created_at', oneMinuteAgo)
+
+    if (error) return true // Allow if database error
+
+    // Rate limits per tier
+    const limits: Record<string, number> = {
+      pro: 30,
+      pro_max: 999999, // Effectively unlimited
+    }
+
+    return (count || 0) < (limits[planTier] || 30)
+  } catch (error) {
+    console.error('Rate limit check error:', error)
+    return true // Allow if error occurs
+  }
 }
 
 export async function logApiUsage(

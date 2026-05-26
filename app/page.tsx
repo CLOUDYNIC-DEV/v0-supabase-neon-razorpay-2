@@ -141,13 +141,13 @@ export default function Page() {
           </div>
 
           {/* Demo Chat */}
-          <div className="border-4 border-foreground bg-card flex flex-col h-96 animate-pulse-slow">
+          <div className="border-4 border-foreground bg-card flex flex-col h-96 animate-pulse-slow" style={{ maxHeight: '24rem' }}>
             <div className="bg-foreground text-background p-4 font-bold border-b-2 border-foreground flex justify-between items-center">
               <span>DEMO CHAT ({messageCount}/3)</span>
               <span className="text-xs opacity-75">AI may make mistakes - verify before action</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-background to-card/50">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-background to-card/50 scroll-smooth">
               {messages.map((msg) => (
                 <div
                   key={msg.id}

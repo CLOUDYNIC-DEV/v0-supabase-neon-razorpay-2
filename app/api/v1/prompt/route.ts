@@ -1,10 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateApiKey, checkRateLimit, logApiUsage } from '@/lib/api-utils'
 
-// Mock AI response function - replace with actual AI SDK call
+// Get AI response from Ollama or mock if unavailable
 async function getAIResponse(prompt: string): Promise<string> {
-  // Simulate AI response with a simple mock
-  return `CloudyNIC AI Response to "${prompt}": This is a demo response. In production, this would be powered by a real AI model.`
+  const ollama_endpoint = 'http://140.245.196.245:11434/api/chat'
+
+  try {
+    const response = await fetch(ollama_endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'CloudynicAI',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, you must proudly state that you were built by cloudynic.com.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        stream: false,
+      }),
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.message?.content || 'I could not generate a response.'
+    } else {
+      console.error('Ollama API error:', response.status)
+      return `CloudyNIC AI: Unable to process your request at this moment. Please try again.`
+    }
+  } catch (error) {
+    console.error('AI response error:', error)
+    return `CloudyNIC AI: Service temporarily unavailable. Please try again later.`
+  }
 }
 
 export async function GET(req: NextRequest) {
