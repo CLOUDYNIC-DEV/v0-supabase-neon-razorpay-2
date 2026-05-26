@@ -86,9 +86,7 @@ export default function PrivacyPage() {
             <h2 className="text-2xl font-bold mb-3">6. THIRD-PARTY SERVICES</h2>
             <p className="mb-3 leading-relaxed">We use:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li><strong>Supabase</strong> - Authentication and user management</li>
-              <li><strong>Neon</strong> - Database (encrypted at rest)</li>
-              <li><strong>Razorpay</strong> - Payment processing (PCI-DSS compliant)</li>
+              <li><strong>Razorpay</strong> - Payment processing</li>
             </ul>
             <p className="mt-3 leading-relaxed">
               Each service has its own privacy policy. We recommend reviewing them. These services are bound by data processing agreements and cannot use your data for other purposes.
