@@ -122,22 +122,21 @@ export default function Page() {
               AFFORDABLE AI FOR ALL
             </h1>
             <p className="text-xl text-muted-foreground mb-8 leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              Powerful, customizable AI platform built for everyone. Simple API integration with flexible pricing. No hidden fees.
-            </p>
-            <div className="flex gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              <Link
-                href="/pricing"
-                className="px-8 py-4 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-smooth hover:scale-105"
-              >
-                VIEW PRICING
-              </Link>
-              <Link
-                href="/auth/sign-up"
-                className="px-8 py-4 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-smooth hover:scale-105"
-              >
-                GET STARTED
-              </Link>
-            </div>
+              Make your own AI app like chatgpt with Unlimited user requests for just $9
+              <div className="flex gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                <Link
+                  href="/pricing"
+                  className="px-8 py-4 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-smooth hover:scale-105"
+                >
+                  VIEW PRICING
+                </Link>
+                <Link
+                  href="/auth/sign-up"
+                  className="px-8 py-4 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-smooth hover:scale-105"
+                >
+                  GET STARTED
+                </Link>
+              </div>
           </div>
 
           {/* Demo Chat */}
@@ -269,13 +268,13 @@ export default function Page() {
                   </Link>
                 </li>
               </ul>
+            </div>
+          </div>
+          <div className="border-t border-background pt-8 text-center text-sm opacity-75">
+            <p>&copy; 2026 CloudyNIC. Built with purpose.</p>
           </div>
         </div>
-        <div className="border-t border-background pt-8 text-center text-sm opacity-75">
-          <p>&copy; 2026 CloudyNIC. Built with purpose.</p>
-        </div>
-      </div>
-    </footer>
+      </footer>
     </main >
   )
 }
