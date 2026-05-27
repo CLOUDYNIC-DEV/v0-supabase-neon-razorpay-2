@@ -263,7 +263,7 @@ export default function Page() {
             </div>
           </div>
           <div className="border-t border-background pt-6 sm:pt-8 text-center text-xs sm:text-sm opacity-75">
-            <p>&copy; 2026 CloudyNIC. Built with purpose.</p>
+            <p>&copy; 2026 Cloudynic. Built with purpose.</p>
           </div>
         </div>
       </footer>
