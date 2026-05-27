@@ -34,8 +34,6 @@ export default function Dashboard() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [generatingKey, setGeneratingKey] = useState(false)
-
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient()
@@ -87,31 +85,6 @@ export default function Dashboard() {
 
     checkAuth()
   }, [router])
-
-  const handleGenerateKey = async () => {
-    setGeneratingKey(true)
-    try {
-      const response = await fetch('/api/keys/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setApiKeys((prev) => [...prev, data.key])
-      } else {
-        const data = await response.json()
-        setError(data.error || 'Failed to generate key')
-      }
-    } catch (err) {
-      setError('Failed to generate API key')
-      console.error(err)
-    } finally {
-      setGeneratingKey(false)
-    }
-  }
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -203,16 +176,7 @@ export default function Dashboard() {
 
         {/* API Keys Section */}
         <div className="border-4 border-foreground p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold">API KEYS</h2>
-            <button
-              onClick={handleGenerateKey}
-              disabled={generatingKey}
-              className="px-6 py-2 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all disabled:opacity-50"
-            >
-              {generatingKey ? 'GENERATING...' : 'GENERATE NEW KEY'}
-            </button>
-          </div>
+          <h2 className="text-3xl font-bold mb-6">API KEYS</h2>
 
           {apiKeys.length > 0 ? (
             <div className="space-y-4">
