@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
           },
           { role: 'user', content: message },
         ],
-        stream: false,
+        stream: true,
       }),
     })
 
