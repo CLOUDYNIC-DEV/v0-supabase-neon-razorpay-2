@@ -19,7 +19,7 @@ async function getAIResponse(prompt: string): Promise<string> {
           },
           { role: 'user', content: prompt },
         ],
-        stream: true,
+        stream: false,
       }),
     })
 
