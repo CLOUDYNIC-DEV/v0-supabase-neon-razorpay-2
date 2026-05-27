@@ -198,8 +198,8 @@ export default function Page() {
           <h2 className="text-3xl sm:text-4xl font-bold mb-8 sm:mb-12 text-center animate-fade-in-up text-balance">WHY CLOUDYNIC?</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             <div className="border-2 border-foreground p-4 sm:p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105">
-              <h3 className="text-lg sm:text-xl font-bold mb-3">AFFORDABLE</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">Start free with 100 requests per day. Scale with our Pro and Pro Max plans at just $1 and $9/month.</p>
+              <h3 className="text-lg sm:text-xl font-bold mb-3">Unlimited Power</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">Scale with our Unlimited Pro Max plan at just $9/month.</p>
             </div>
             <div className="border-2 border-foreground p-4 sm:p-6 animate-fade-in-up hover:shadow-lg transition-smooth hover:scale-105" style={{ animationDelay: '0.1s' }}>
               <h3 className="text-lg sm:text-xl font-bold mb-3">CUSTOMIZABLE</h3>
