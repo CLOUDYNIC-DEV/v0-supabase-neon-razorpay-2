@@ -28,11 +28,11 @@ async function getAIResponse(prompt: string): Promise<string> {
       return data.message?.content || 'I could not generate a response.'
     } else {
       console.error('Ollama API error:', response.status)
-      return `CloudyNIC AI: Unable to process your request at this moment. Please try again.`
+      return `Cloudynic AI: Unable to process your request at this moment. Please try again.`
     }
   } catch (error) {
     console.error('AI response error:', error)
-    return `CloudyNIC AI: Service temporarily unavailable. Please try again later.`
+    return `Cloudynic AI: Service temporarily unavailable. Please try again later.`
   }
 }
 
