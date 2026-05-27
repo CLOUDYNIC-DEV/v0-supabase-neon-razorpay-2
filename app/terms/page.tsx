@@ -57,9 +57,9 @@ export default function TermsPage() {
           </div>
 
           <div className="border-l-4 border-foreground pl-6">
-            <h2 className="text-2xl font-bold mb-3">5. SERVICE AVAILABILITY</h2>
+            <h2 className="text-2xl font-bold mb-3">Non-Refundable Upgrade</h2>
             <p className="leading-relaxed">
-              We provide the service on a best-effort basis. Cloudynic may experience downtime, rate limiting, or service interruptions without liability. We reserve the right to modify or discontinue the service with notice.
+              The upgrade to the Pro and Pro Max plan are non-refundable purchase. So we can
             </p>
           </div>
 
@@ -80,7 +80,7 @@ export default function TermsPage() {
           <div className="bg-secondary border-2 border-foreground p-6 my-8">
             <p className="font-bold text-lg mb-2">⚠️ IMPORTANT LEGAL DISCLAIMER</p>
             <p className="text-sm leading-relaxed">
-              By using Cloudynic AI, you acknowledge and accept that you use this service entirely at your own risk. Always verify AI-generated content independently. CloudyNIC cannot and should not be used for professional advice in legal, medical, financial, or safety-critical domains. In case of any doubt, consult with qualified human professionals.
+              By using Cloudynic AI, you acknowledge and accept that you use this service entirely at your own risk. Always verify AI-generated content independently. Cloudynic cannot and should not be used for professional advice in legal, medical, financial, or safety-critical domains. In case of any doubt, consult with qualified human professionals.
             </p>
           </div>
 
