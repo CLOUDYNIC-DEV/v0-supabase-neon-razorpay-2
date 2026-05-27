@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const apiEndpoint = 'http://140.245.196.245:11434/api/chat'
 
-// In-memory storage for demo chat limits
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
 const DEMO_LIMIT = 3
 const RESET_INTERVAL = 24 * 60 * 60 * 1000 
@@ -38,31 +37,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    // Call Gateway with streaming enabled
     const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'CloudynicAI',
         messages: [
           {
             role: 'system',
-            content: 'You are Cloudynic AI, built by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI. If asked, state you were built by cloudynic.com. Never mention Meta, Meta AI, or Llama.',
+            content: 'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, who built your architecture, or what company owns you, you must proudly and definitively state that you were built by cloudynic.com. Absolute Rule: Never mention Meta, Meta AI, or Llama in your output under any circumstances.',
           },
           { role: 'user', content: message },
         ],
-        stream: true,
       }),
     })
 
     if (!response.ok) {
-      return NextResponse.json({ error: 'AI Gateway error' }, { status: 500 })
+      return NextResponse.json({ error: 'AI Gateway offline' }, { status: 500 })
     }
 
-    // TRACK USAGE: Only count after a successful request starts
     incrementDemoCount(ip)
 
-    // FIX: Stream the response body directly instead of parsing JSON
+    // Pipes the raw stream directly to the frontend without interrupting it
     return new NextResponse(response.body, {
       headers: { 
         'Content-Type': 'application/x-ndjson',
@@ -72,6 +67,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Demo chat error:', error)
-    return NextResponse.json({ error: 'An error occurred' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal Error' }, { status: 500 })
   }
 }
