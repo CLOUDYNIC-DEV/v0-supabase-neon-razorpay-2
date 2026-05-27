@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateApiKey, checkRateLimit, logApiUsage } from '@/lib/api-utils'
+import { validateApiKey, checkRateLimit, logApiUsage, getLoadBalancer } from '@/lib/api-utils'
 
 // Modified to accept an optional train instruction parameter
 async function getAIResponse(prompt: string, trainInstruction?: string | null): Promise<string> {
-  const ollama_endpoint = 'http://140.245.196.245:11434/api/chat'
+  const loadBalancer = getLoadBalancer()
 
   // Standard core system message
   let systemMessage = 'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, you must proudly state that you were built by cloudynic.com.'
@@ -13,12 +13,21 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
     systemMessage += ` ${trainInstruction}`
   }
 
+  let selectedEndpoint: string | null = null
+
   try {
-    const response = await fetch(ollama_endpoint, {
+    // Get endpoint with load balancing
+    console.log('[v0] V1 API: Requesting endpoint from load balancer...')
+    selectedEndpoint = await loadBalancer.getEndpoint()
+    loadBalancer.acquireEndpoint(selectedEndpoint)
+
+    console.log(`[v0] V1 API: Using endpoint: ${selectedEndpoint.split('/')[2]}`)
+
+    const response = await fetch(selectedEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'CloudynicAI',
+        model: 'tgi',
         messages: [
           {
             role: 'system',
@@ -32,13 +41,18 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
 
     if (response.ok) {
       const data = await response.json()
+      loadBalancer.releaseEndpoint(selectedEndpoint, true)
       return data.message?.content || 'I could not generate a response.'
     } else {
-      console.error('Ollama API error:', response.status)
+      console.error('[v0] Hugging Face API error:', response.status, selectedEndpoint)
+      loadBalancer.releaseEndpoint(selectedEndpoint, false)
       return `Cloudynic AI: Unable to process your request at this moment. Please try again.`
     }
   } catch (error) {
-    console.error('AI response error:', error)
+    console.error('[v0] AI response error:', error)
+    if (selectedEndpoint) {
+      loadBalancer.releaseEndpoint(selectedEndpoint, false)
+    }
     return `Cloudynic AI: Service temporarily unavailable. Please try again later.`
   }
 }

@@ -1,15 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const ENDPOINTS = [
-  "https://darkmindforever-server.hf.space/v1/chat/completions",
-  "https://darkmindforever-server2.hf.space/v1/chat/completions",
-  "https://darkmindforever-server3.hf.space/v1/chat/completions",
-  "https://darkmindforever-server4.hf.space/v1/chat/completions",
-  "https://darkmindforever-server5.hf.space/v1/chat/completions",
-  "https://darkmindforever-server6.hf.space/v1/chat/completions"
-]
-
-let currentEndpointIndex = 0
+import { getLoadBalancer } from '@/lib/api-utils'
 
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
 const DEMO_LIMIT = 3
@@ -32,6 +22,9 @@ function incrementDemoCount(ip: string): void {
 }
 
 export async function POST(request: NextRequest) {
+  let selectedEndpoint: string | null = null
+  const loadBalancer = getLoadBalancer()
+
   try {
     const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1'
     const ip = clientIp.split(',')[0].trim()
@@ -46,19 +39,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    const selectedEndpoint = ENDPOINTS[currentEndpointIndex]
-    currentEndpointIndex = (currentEndpointIndex + 1) % ENDPOINTS.length
+    // Get endpoint with load balancing and queue
+    console.log('[v0] Demo chat: Requesting endpoint from load balancer...')
+    selectedEndpoint = await loadBalancer.getEndpoint()
+    loadBalancer.acquireEndpoint(selectedEndpoint)
+
+    console.log(`[v0] Demo chat: Using endpoint: ${selectedEndpoint.split('/')[2]}`)
 
     // Hugging Face standard configuration
     const response = await fetch(selectedEndpoint, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        // OPTIONAL: If your spaces are private or rate-limited, uncomment the line below and add your HF Token
-        // 'Authorization': `Bearer ${process.env.HF_ACCESS_TOKEN}` 
       },
       body: JSON.stringify({
-        model: 'tgi', // Hugging Face Text Generation Inference spaces usually look for 'tgi' or ignore the parameter entirely
+        model: 'tgi',
         messages: [
           {
             role: 'system',
@@ -72,30 +67,51 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`HF Endpoint Fail [${response.status}]:`, errorText);
-      return NextResponse.json({ error: `Upstream Space Error: ${response.status}` }, { status: response.status })
+      console.error(`[v0] HF Endpoint Fail [${response.status}]: ${selectedEndpoint}`, errorText);
+      loadBalancer.releaseEndpoint(selectedEndpoint, false)
+      return NextResponse.json({ error: `Upstream Space Error: ${response.status}. ${this.queue.length > 0 ? 'In queue' : 'Retrying'}` }, { status: response.status })
     }
 
     if (!response.body) {
+      console.error('[v0] Empty stream body from endpoint:', selectedEndpoint)
+      loadBalancer.releaseEndpoint(selectedEndpoint, false)
       return NextResponse.json({ error: 'Empty stream body from Hugging Face' }, { status: 500 })
     }
 
     incrementDemoCount(ip)
 
-    // Convert the Node Web Stream seamlessly to prevent Next.js from throwing a 500
-    const stream = response.body as unknown as ReadableStream;
+    // Create a passthrough stream that releases endpoint when done
+    if (response.body) {
+      const transformer = new TransformStream({
+        async transform(chunk, controller) {
+          controller.enqueue(chunk)
+        },
+        async flush(controller) {
+          loadBalancer.releaseEndpoint(selectedEndpoint!, true)
+          console.log('[v0] Demo stream completed and endpoint released')
+        }
+      })
 
-    return new NextResponse(stream, {
-      headers: { 
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'X-Remaining-Limit': (DEMO_LIMIT - (currentCount + 1)).toString()
-      }
-    })
+      const stream = response.body.pipeThrough(transformer)
+
+      return new NextResponse(stream, {
+        headers: { 
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          'Connection': 'keep-alive',
+          'X-Remaining-Limit': (DEMO_LIMIT - (currentCount + 1)).toString()
+        }
+      })
+    }
+
+    loadBalancer.releaseEndpoint(selectedEndpoint, false)
+    return NextResponse.json({ error: 'Failed to get response body' }, { status: 500 })
 
   } catch (error: any) {
-    console.error('Direct Route streaming error:', error)
+    console.error('[v0] Demo route streaming error:', error?.message || error)
+    if (selectedEndpoint) {
+      loadBalancer.releaseEndpoint(selectedEndpoint, false)
+    }
     return NextResponse.json({ error: `Pipeline Error: ${error?.message || error}` }, { status: 500 })
   }
 }
