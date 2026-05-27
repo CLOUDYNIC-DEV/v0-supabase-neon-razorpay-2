@@ -132,8 +132,8 @@ export default function Page() {
                 </Link>
                 <Link
                   href="/auth/sign-up"
-                  className="px-8 py-4 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-smooth hover:scale-105"
-                >
+                  className="px-8 py-4 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-smooth hover:scale-105">
+
                   GET STARTED
                 </Link>
               </div>
