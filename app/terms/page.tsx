@@ -57,9 +57,9 @@ export default function TermsPage() {
           </div>
 
           <div className="border-l-4 border-foreground pl-6">
-            <h2 className="text-2xl font-bold mb-3">Non-Refundable Upgrade</h2>
+            <h2 className="text-2xl font-bold mb-3">5. Non-Refundable Upgrade</h2>
             <p className="leading-relaxed">
-              The upgrade to the Pro and Pro Max plan are non-refundable purchase. So we can
+              The upgrade to the Pro and Pro Max plan are non-refundable purchase. So we cannot refund the money back once it is paid.
             </p>
           </div>
 
