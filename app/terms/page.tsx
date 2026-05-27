@@ -33,7 +33,7 @@ export default function TermsPage() {
           <div className="border-l-4 border-foreground pl-6">
             <h2 className="text-2xl font-bold mb-3">2. USER RESPONSIBILITIES</h2>
             <p className="leading-relaxed">
-              Users are responsible for verifying all output from CloudyNIC AI before implementation. The service is provided "AS IS" without any warranties or guarantees of accuracy, completeness, or usefulness.
+              Users are responsible for verifying all output from Cloudynic AI before implementation. The service is provided "AS IS" without any warranties or guarantees of accuracy, completeness, or usefulness.
             </p>
           </div>
 
