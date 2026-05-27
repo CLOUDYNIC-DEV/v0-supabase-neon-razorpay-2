@@ -169,19 +169,20 @@ export default function Page() {
             )}
 
             {canChat && (
-              <form onSubmit={handleSendMessage} className="border-t-2 border-foreground p-3 sm:p-4 flex gap-2">
+              <form onSubmit={handleSendMessage} className="border-t-2 border-foreground p-2 sm:p-3 flex gap-1 sm:gap-2 items-center overflow-hidden">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Type message..."
                   disabled={loading || !canChat}
-                  className="flex-1 px-2 sm:px-3 py-2 border-2 border-foreground bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-foreground disabled:opacity-50 text-xs sm:text-sm"
+                  className="flex-1 min-w-0 px-2 sm:px-3 py-2 border-2 border-foreground bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-foreground disabled:opacity-50 text-xs sm:text-sm"
                 />
                 <button
                   type="submit"
                   disabled={loading || !input.trim() || !canChat}
-                  className="px-3 sm:px-4 py-2 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all disabled:opacity-50 text-xs sm:text-sm whitespace-nowrap"
+                  className="flex-shrink-0 px-2 sm:px-4 py-2 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all disabled:opacity-50 text-xs sm:text-sm"
+                  title="Send message"
                 >
                   {loading ? '...' : 'SEND'}
                 </button>
