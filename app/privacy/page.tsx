@@ -17,7 +17,7 @@ export default function PrivacyPage() {
           <div className="border-l-4 border-foreground pl-6">
             <h2 className="text-2xl font-bold mb-3">1. DATA PROTECTION COMMITMENT</h2>
             <p className="leading-relaxed">
-              CloudyNIC takes your privacy seriously. We implement industry-standard security measures to protect your personal data, API keys, passwords, and usage information.
+              Cloudynic takes your privacy seriously. We implement industry-standard security measures to protect your personal data, API keys, passwords, and usage information.
             </p>
           </div>
 
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
           <div className="border-l-4 border-foreground pl-6">
             <h2 className="text-2xl font-bold mb-3">3. API KEY & PASSWORD SECURITY</h2>
             <div className="bg-secondary border-2 border-foreground p-4 mb-4">
-              <p className="font-bold mb-2">🔐 API Keys & Passwords are:</p>
+              <p className="font-bold mb-2">API Keys & Passwords are:</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>Stored using industry-standard encryption</li>
                 <li>Never logged in plain text</li>
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           <div className="border-l-4 border-foreground pl-6">
             <h2 className="text-2xl font-bold mb-3">4. COOKIE & SESSION SECURITY</h2>
             <div className="bg-secondary border-2 border-foreground p-4 mb-4">
-              <p className="font-bold mb-2">🍪 Your Cookies are:</p>
+              <p className="font-bold mb-2">Your Cookies are:</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>HttpOnly (cannot be accessed by JavaScript)</li>
                 <li>Secure (only transmitted over HTTPS)</li>
@@ -116,7 +116,7 @@ export default function PrivacyPage() {
           </div>
 
           <div className="bg-secondary border-2 border-foreground p-6 my-8">
-            <p className="font-bold text-lg mb-2">🛡️ SECURITY GUARANTEE</p>
+            <p className="font-bold text-lg mb-2">SECURITY GUARANTEE</p>
             <p className="text-sm leading-relaxed">
               Cloudynic uses encryption (SSL/TLS), secure password hashing (bcrypt), and industry-best practices for data protection. However, no system is 100% secure. If you suspect a security breach, contact us immediately at hello@cloudynic.com.
             </p>
