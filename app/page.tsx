@@ -60,30 +60,76 @@ export default function Page() {
         }),
       })
 
-      const data = await response.json()
+      if (!response.ok) {
+        const errorData = await response.json()
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: errorData.error || 'An error occurred. Please try again.',
+          },
+        ])
+        return
+      }
 
-      if (response.ok) {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: data.reply,
+      // Handle streaming response (SSE format)
+      if (response.body) {
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let fullContent = ''
+
+        const assistantMessageId = (Date.now() + 1).toString()
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: '',
+          },
+        ])
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = decoder.decode(value, { stream: true })
+            const lines = chunk.split('\n')
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const jsonStr = line.slice(6)
+                if (jsonStr.trim()) {
+                  try {
+                    const jsonData = JSON.parse(jsonStr)
+                    if (jsonData.choices?.[0]?.delta?.content) {
+                      fullContent += jsonData.choices[0].delta.content
+                      setMessages((prev) =>
+                        prev.map((msg) =>
+                          msg.id === assistantMessageId
+                            ? { ...msg, content: fullContent }
+                            : msg
+                        )
+                      )
+                    }
+                  } catch (e) {
+                    // Skip parsing errors for individual chunks
+                  }
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock()
         }
-        setMessages((prev) => [...prev, assistantMessage])
+
         const newCount = currentCount + 1
         setMessageCount(newCount)
 
         if (newCount >= 3) {
           setCanChat(false)
         }
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content: data.error || 'An error occurred. Please try again.',
-          },
-        ])
       }
     } catch (error) {
       console.error('Chat error:', error)

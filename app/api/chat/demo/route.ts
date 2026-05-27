@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       const errorText = await response.text();
       console.error(`[v0] HF Endpoint Fail [${response.status}]: ${selectedEndpoint}`, errorText);
       loadBalancer.releaseEndpoint(selectedEndpoint, false)
-      return NextResponse.json({ error: `Upstream Space Error: ${response.status}. ${this.queue.length > 0 ? 'In queue' : 'Retrying'}` }, { status: response.status })
+      return NextResponse.json({ error: `Upstream Space Error: ${response.status}` }, { status: response.status })
     }
 
     if (!response.body) {
