@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const apiEndpoint = 'http://140.245.196.245:11434/api/chat'
+// Raw endpoints array directly inside the route
+const ENDPOINTS = [
+  "https://darkmindforever-server.hf.space/v1/chat/completions",
+  "https://darkmindforever-server2.hf.space/v1/chat/completions",
+  "https://darkmindforever-server3.hf.space/v1/chat/completions",
+  "https://darkmindforever-server4.hf.space/v1/chat/completions",
+  "https://darkmindforever-server5.hf.space/v1/chat/completions",
+  "https://darkmindforever-server6.hf.space/v1/chat/completions"
+]
 
+// Global counter to cleanly round-robin balance requests
+let currentEndpointIndex = 0
+
+// In-memory storage for demo chat limits
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
 const DEMO_LIMIT = 3
 const RESET_INTERVAL = 24 * 60 * 60 * 1000 
@@ -37,7 +49,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    const response = await fetch(apiEndpoint, {
+    // Select endpoint and increment index for the next request
+    const selectedEndpoint = ENDPOINTS[currentEndpointIndex]
+    currentEndpointIndex = (currentEndpointIndex + 1) % ENDPOINTS.length
+
+    // Call Hugging Face Direct with Streaming
+    const response = await fetch(selectedEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -48,25 +65,29 @@ export async function POST(request: NextRequest) {
           },
           { role: 'user', content: message },
         ],
+        stream: true, // Request SSE stream format directly from HF
       }),
     })
 
     if (!response.ok) {
-      return NextResponse.json({ error: 'AI Gateway offline' }, { status: 500 })
+      console.error(`HF Endpoint ${selectedEndpoint} failed with status ${response.status}`)
+      return NextResponse.json({ error: 'Upstream Provider Error' }, { status: 500 })
     }
 
     incrementDemoCount(ip)
 
-    // Pipes the raw stream directly to the frontend without interrupting it
+    // Pass the raw byte stream directly into the browser client
     return new NextResponse(response.body, {
       headers: { 
-        'Content-Type': 'application/x-ndjson',
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
         'X-Remaining-Limit': (DEMO_LIMIT - (currentCount + 1)).toString()
       }
     })
 
   } catch (error) {
-    console.error('Demo chat error:', error)
-    return NextResponse.json({ error: 'Internal Error' }, { status: 500 })
+    console.error('Direct Route streaming error:', error)
+    return NextResponse.json({ error: 'Internal Server Error Pipeline' }, { status: 500 })
   }
 }
