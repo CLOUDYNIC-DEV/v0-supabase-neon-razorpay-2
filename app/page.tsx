@@ -122,7 +122,7 @@ export default function Page() {
               AFFORDABLE AI FOR ALL
             </h1>
             <p className="text-xl text-muted-foreground mb-8 leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              Make your own AI app like chatgpt with Unlimited user requests for just $9
+              Launch Your Own ChatGPT like AI app with Unlimited user requests for Just $9
               <div className="flex gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                 <Link
                   href="/pricing"
