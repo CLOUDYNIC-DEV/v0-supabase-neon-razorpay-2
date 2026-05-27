@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateApiKey, checkRateLimit, logApiUsage } from '@/lib/api-utils'
 
-// Get AI response from Ollama or mock if unavailable
-async function getAIResponse(prompt: string): Promise<string> {
+// Modified to accept an optional train instruction parameter
+async function getAIResponse(prompt: string, trainInstruction?: string | null): Promise<string> {
   const ollama_endpoint = 'http://140.245.196.245:11434/api/chat'
+
+  // Standard core system message
+  let systemMessage = 'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, you must proudly state that you were built by cloudynic.com.'
+  
+  // Append custom training/roleplay message if provided
+  if (trainInstruction) {
+    systemMessage += ` ${trainInstruction}`
+  }
 
   try {
     const response = await fetch(ollama_endpoint, {
@@ -14,8 +22,7 @@ async function getAIResponse(prompt: string): Promise<string> {
         messages: [
           {
             role: 'system',
-            content:
-              'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, you must proudly state that you were built by cloudynic.com.',
+            content: systemMessage,
           },
           { role: 'user', content: prompt },
         ],
@@ -43,6 +50,7 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams
     const prompt = searchParams.get('prompt')
     const apiKey = searchParams.get('key')
+    const train = searchParams.get('train') // Extracted the train query parameter
 
     if (!prompt) {
       return new NextResponse('Error: missing prompt parameter', {
@@ -85,8 +93,8 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Get AI response
-    const response = await getAIResponse(prompt)
+    // Get AI response (passing the train variable)
+    const response = await getAIResponse(prompt, train)
 
     const responseTime = Date.now() - startTime
 
@@ -125,7 +133,7 @@ export async function POST(req: NextRequest) {
   const startTime = Date.now()
 
   try {
-    const { prompt, key } = await req.json()
+    const { prompt, key, train } = await req.json() // Destructured the optional train parameter
 
     if (!prompt) {
       return new NextResponse(
@@ -176,8 +184,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Get AI response
-    const response = await getAIResponse(prompt)
+    // Get AI response (passing the train variable)
+    const response = await getAIResponse(prompt, train)
 
     const responseTime = Date.now() - startTime
 

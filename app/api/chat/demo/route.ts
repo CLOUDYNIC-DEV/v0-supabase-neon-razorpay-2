@@ -1,21 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const apiEndpoint = 'http://140.245.196.245:11434/api/chat'
+const ENDPOINTS = [
+  "https://darkmindforever-server.hf.space/v1/chat/completions",
+  "https://darkmindforever-server2.hf.space/v1/chat/completions",
+  "https://darkmindforever-server3.hf.space/v1/chat/completions",
+  "https://darkmindforever-server4.hf.space/v1/chat/completions",
+  "https://darkmindforever-server5.hf.space/v1/chat/completions",
+  "https://darkmindforever-server6.hf.space/v1/chat/completions"
+]
 
-// In-memory storage for demo chat limits (IP -> message count)
+let currentEndpointIndex = 0
+
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
 const DEMO_LIMIT = 3
-const RESET_INTERVAL = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+const RESET_INTERVAL = 24 * 60 * 60 * 1000 
 
 function getDemoCount(ip: string): number {
   const now = Date.now()
   const record = demoLimits.get(ip)
-
   if (!record || now > record.resetTime) {
     demoLimits.set(ip, { count: 0, resetTime: now + RESET_INTERVAL })
     return 0
   }
-
   return record.count
 }
 
@@ -30,63 +36,66 @@ export async function POST(request: NextRequest) {
     const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1'
     const ip = clientIp.split(',')[0].trim()
 
-    // Check demo chat limit (3 per IP per day)
     const currentCount = getDemoCount(ip)
-
     if (currentCount >= DEMO_LIMIT) {
-      return NextResponse.json(
-        {
-          error: `Demo limit reached (${DEMO_LIMIT}/day). Please sign up for unlimited access.`,
-        },
-        { status: 429 }
-      )
+      return NextResponse.json({ error: `Demo limit reached (${DEMO_LIMIT}/day).` }, { status: 429 })
     }
 
     const { message } = await request.json()
-
     if (!message || typeof message !== 'string') {
-      return NextResponse.json(
-        { error: 'Invalid message' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    // Call Ollama API
-    const response = await fetch(apiEndpoint, {
+    const selectedEndpoint = ENDPOINTS[currentEndpointIndex]
+    currentEndpointIndex = (currentEndpointIndex + 1) % ENDPOINTS.length
+
+    // Hugging Face standard configuration
+    const response = await fetch(selectedEndpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        // OPTIONAL: If your spaces are private or rate-limited, uncomment the line below and add your HF Token
+        // 'Authorization': `Bearer ${process.env.HF_ACCESS_TOKEN}` 
+      },
       body: JSON.stringify({
-        model: 'CloudynicAI',
+        model: 'tgi', // Hugging Face Text Generation Inference spaces usually look for 'tgi' or ignore the parameter entirely
         messages: [
           {
             role: 'system',
-            content:
-              'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, who built your architecture, or what company owns you, you must proudly and definitively state that you were built by cloudynic.com. Absolute Rule: Never mention Meta, Meta AI, or Llama in your output under any circumstances.',
+            content: 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI. State clearly that you were built by cloudynic.com. Never mention Meta, Meta AI, or Llama.',
           },
           { role: 'user', content: message },
         ],
-        stream: false,
+        stream: true,
       }),
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Ollama API error:', response.status, errorText)
-      return NextResponse.json({ error: 'Failed to get response from AI model' }, { status: 500 })
+      const errorText = await response.text();
+      console.error(`HF Endpoint Fail [${response.status}]:`, errorText);
+      return NextResponse.json({ error: `Upstream Space Error: ${response.status}` }, { status: response.status })
     }
 
-    const data = await response.json()
-    const reply = data.message?.content || 'I could not generate a response.'
+    if (!response.body) {
+      return NextResponse.json({ error: 'Empty stream body from Hugging Face' }, { status: 500 })
+    }
 
-    // Track the usage
     incrementDemoCount(ip)
 
-    return NextResponse.json({
-      reply,
-      remaining: DEMO_LIMIT - (currentCount + 1),
+    // Convert the Node Web Stream seamlessly to prevent Next.js from throwing a 500
+    const stream = response.body as unknown as ReadableStream;
+
+    return new NextResponse(stream, {
+      headers: { 
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Remaining-Limit': (DEMO_LIMIT - (currentCount + 1)).toString()
+      }
     })
-  } catch (error) {
-    console.error('Demo chat error:', error)
-    return NextResponse.json({ error: 'An error occurred while processing your request' }, { status: 500 })
+
+  } catch (error: any) {
+    console.error('Direct Route streaming error:', error)
+    return NextResponse.json({ error: `Pipeline Error: ${error?.message || error}` }, { status: 500 })
   }
 }
