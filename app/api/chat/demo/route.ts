@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Raw endpoints array directly inside the route
 const ENDPOINTS = [
   "https://darkmindforever-server.hf.space/v1/chat/completions",
   "https://darkmindforever-server2.hf.space/v1/chat/completions",
@@ -10,10 +9,8 @@ const ENDPOINTS = [
   "https://darkmindforever-server6.hf.space/v1/chat/completions"
 ]
 
-// Global counter to cleanly round-robin balance requests
 let currentEndpointIndex = 0
 
-// In-memory storage for demo chat limits
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
 const DEMO_LIMIT = 3
 const RESET_INTERVAL = 24 * 60 * 60 * 1000 
@@ -49,45 +46,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    // Select endpoint and increment index for the next request
     const selectedEndpoint = ENDPOINTS[currentEndpointIndex]
     currentEndpointIndex = (currentEndpointIndex + 1) % ENDPOINTS.length
 
-    // Call Hugging Face Direct with Streaming
+    // Hugging Face standard configuration
     const response = await fetch(selectedEndpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        // OPTIONAL: If your spaces are private or rate-limited, uncomment the line below and add your HF Token
+        // 'Authorization': `Bearer ${process.env.HF_ACCESS_TOKEN}` 
+      },
       body: JSON.stringify({
+        model: 'tgi', // Hugging Face Text Generation Inference spaces usually look for 'tgi' or ignore the parameter entirely
         messages: [
           {
             role: 'system',
-            content: 'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, who built your architecture, or what company owns you, you must proudly and definitively state that you were built by cloudynic.com. Absolute Rule: Never mention Meta, Meta AI, or Llama in your output under any circumstances.',
+            content: 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI. State clearly that you were built by cloudynic.com. Never mention Meta, Meta AI, or Llama.',
           },
           { role: 'user', content: message },
         ],
-        stream: true, // Request SSE stream format directly from HF
+        stream: true,
       }),
     })
 
     if (!response.ok) {
-      console.error(`HF Endpoint ${selectedEndpoint} failed with status ${response.status}`)
-      return NextResponse.json({ error: 'Upstream Provider Error' }, { status: 500 })
+      const errorText = await response.text();
+      console.error(`HF Endpoint Fail [${response.status}]:`, errorText);
+      return NextResponse.json({ error: `Upstream Space Error: ${response.status}` }, { status: response.status })
+    }
+
+    if (!response.body) {
+      return NextResponse.json({ error: 'Empty stream body from Hugging Face' }, { status: 500 })
     }
 
     incrementDemoCount(ip)
 
-    // Pass the raw byte stream directly into the browser client
-    return new NextResponse(response.body, {
+    // Convert the Node Web Stream seamlessly to prevent Next.js from throwing a 500
+    const stream = response.body as unknown as ReadableStream;
+
+    return new NextResponse(stream, {
       headers: { 
         'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'X-Remaining-Limit': (DEMO_LIMIT - (currentCount + 1)).toString()
       }
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Direct Route streaming error:', error)
-    return NextResponse.json({ error: 'Internal Server Error Pipeline' }, { status: 500 })
+    return NextResponse.json({ error: `Pipeline Error: ${error?.message || error}` }, { status: 500 })
   }
 }
