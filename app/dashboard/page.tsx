@@ -107,15 +107,15 @@ export default function Dashboard() {
     <main className="min-h-screen bg-background">
       <Header />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="flex justify-between items-center mb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 sm:mb-12 gap-4 sm:gap-0">
           <div>
-            <h1 className="text-5xl font-bold mb-2">DASHBOARD</h1>
-            <p className="text-muted-foreground">Welcome, {user?.email}</p>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-balance">DASHBOARD</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground break-all">Welcome, {user?.email}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="px-6 py-2 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-all"
+            className="px-4 sm:px-6 py-2 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-all text-xs sm:text-sm whitespace-nowrap"
           >
             LOGOUT
           </button>
@@ -128,27 +128,27 @@ export default function Dashboard() {
         )}
 
         {/* Current Plan Section */}
-        <div className="mb-12 border-4 border-foreground p-8">
-          <h2 className="text-3xl font-bold mb-6">CURRENT PLAN</h2>
+        <div className="mb-8 sm:mb-12 border-4 border-foreground p-4 sm:p-6 md:p-8">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">CURRENT PLAN</h2>
 
           {subscription ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center border-b-2 border-foreground pb-4">
-                <span className="text-xl font-bold">Plan Type:</span>
-                <span className="text-xl font-bold uppercase">{subscription.plan_type}</span>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-2 border-foreground pb-3 sm:pb-4 gap-2 sm:gap-0">
+                <span className="text-sm sm:text-base font-bold">Plan Type:</span>
+                <span className="text-sm sm:text-base font-bold uppercase">{subscription.plan_type}</span>
               </div>
-              <div className="flex justify-between items-center border-b-2 border-foreground pb-4">
-                <span className="text-xl font-bold">Status:</span>
-                <span className="text-xl uppercase">{subscription.status}</span>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-2 border-foreground pb-3 sm:pb-4 gap-2 sm:gap-0">
+                <span className="text-sm sm:text-base font-bold">Status:</span>
+                <span className="text-sm sm:text-base uppercase">{subscription.status}</span>
               </div>
-              <div className="flex justify-between items-center border-b-2 border-foreground pb-4">
-                <span className="text-xl font-bold">Monthly Cost:</span>
-                <span className="text-xl font-bold">${subscription.monthly_cost}/month</span>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-2 border-foreground pb-3 sm:pb-4 gap-2 sm:gap-0">
+                <span className="text-sm sm:text-base font-bold">Monthly Cost:</span>
+                <span className="text-sm sm:text-base font-bold">${subscription.monthly_cost}/month</span>
               </div>
               {subscription.renewal_date && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold">Renewal Date:</span>
-                  <span className="text-xl">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+                  <span className="text-sm sm:text-base font-bold">Renewal Date:</span>
+                  <span className="text-sm sm:text-base">
                     {new Date(subscription.renewal_date).toLocaleDateString()}
                   </span>
                 </div>
@@ -156,17 +156,17 @@ export default function Dashboard() {
 
               <Link
                 href="/pricing"
-                className="block mt-8 px-6 py-3 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-center"
+                className="block mt-6 sm:mt-8 px-4 sm:px-6 py-2 sm:py-3 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-center text-xs sm:text-sm"
               >
                 UPGRADE PLAN
               </Link>
             </div>
           ) : (
             <div className="text-center">
-              <p className="text-lg mb-6">You don&apos;t have a plan yet.</p>
+              <p className="text-xs sm:text-sm md:text-base mb-4 sm:mb-6">You don&apos;t have a plan yet.</p>
               <Link
                 href="/pricing"
-                className="inline-block px-6 py-3 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all"
+                className="inline-block px-4 sm:px-6 py-2 sm:py-3 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-xs sm:text-sm"
               >
                 CHOOSE A PLAN
               </Link>
@@ -175,22 +175,22 @@ export default function Dashboard() {
         </div>
 
         {/* API Keys Section */}
-        <div className="border-4 border-foreground p-8">
-          <h2 className="text-3xl font-bold mb-6">API KEYS</h2>
+        <div className="border-4 border-foreground p-4 sm:p-6 md:p-8">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">API KEYS</h2>
 
           {apiKeys.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {apiKeys.map((key) => (
                 <div
                   key={key.id}
-                  className="border-2 border-foreground p-4 bg-card"
+                  className="border-2 border-foreground p-3 sm:p-4 bg-card"
                 >
-                  <div className="flex justify-between items-start gap-4 mb-3">
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-muted-foreground mb-1">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-4 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-bold text-muted-foreground mb-1 break-all">
                         {key.key_name || 'Unnamed Key'}
                       </p>
-                      <p className="font-mono text-xs break-all bg-background p-2 border border-foreground mb-2">
+                      <p className="font-mono text-xs break-all bg-background p-2 border border-foreground mb-2 overflow-x-auto">
                         {key.api_key}
                       </p>
                       <button
@@ -209,7 +209,7 @@ export default function Dashboard() {
                       </button>
                     </div>
                     <span
-                      className={`px-3 py-1 font-bold text-xs whitespace-nowrap border-2 border-foreground ${
+                      className={`px-2 sm:px-3 py-1 font-bold text-xs whitespace-nowrap border-2 border-foreground ${
                         key.is_active
                           ? 'bg-foreground text-background'
                           : 'bg-muted text-foreground'
