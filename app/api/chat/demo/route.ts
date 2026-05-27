@@ -2,20 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const apiEndpoint = 'http://140.245.196.245:11434/api/chat'
 
-// In-memory storage for demo chat limits (IP -> message count)
+// In-memory storage for demo chat limits
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
 const DEMO_LIMIT = 3
-const RESET_INTERVAL = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+const RESET_INTERVAL = 24 * 60 * 60 * 1000 
 
 function getDemoCount(ip: string): number {
   const now = Date.now()
   const record = demoLimits.get(ip)
-
   if (!record || now > record.resetTime) {
     demoLimits.set(ip, { count: 0, resetTime: now + RESET_INTERVAL })
     return 0
   }
-
   return record.count
 }
 
@@ -30,28 +28,17 @@ export async function POST(request: NextRequest) {
     const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1'
     const ip = clientIp.split(',')[0].trim()
 
-    // Check demo chat limit (3 per IP per day)
     const currentCount = getDemoCount(ip)
-
     if (currentCount >= DEMO_LIMIT) {
-      return NextResponse.json(
-        {
-          error: `Demo limit reached (${DEMO_LIMIT}/day). Please sign up for unlimited access.`,
-        },
-        { status: 429 }
-      )
+      return NextResponse.json({ error: `Demo limit reached (${DEMO_LIMIT}/day).` }, { status: 429 })
     }
 
     const { message } = await request.json()
-
     if (!message || typeof message !== 'string') {
-      return NextResponse.json(
-        { error: 'Invalid message' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    // Call Ollama API
+    // Call Gateway with streaming enabled
     const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -60,8 +47,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content:
-              'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, who built your architecture, or what company owns you, you must proudly and definitively state that you were built by cloudynic.com. Absolute Rule: Never mention Meta, Meta AI, or Llama in your output under any circumstances.',
+            content: 'You are Cloudynic AI, built by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI. If asked, state you were built by cloudynic.com. Never mention Meta, Meta AI, or Llama.',
           },
           { role: 'user', content: message },
         ],
@@ -70,23 +56,22 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Ollama API error:', response.status, errorText)
-      return NextResponse.json({ error: 'Failed to get response from AI model' }, { status: 500 })
+      return NextResponse.json({ error: 'AI Gateway error' }, { status: 500 })
     }
 
-    const data = await response.json()
-    const reply = data.message?.content || 'I could not generate a response.'
-
-    // Track the usage
+    // TRACK USAGE: Only count after a successful request starts
     incrementDemoCount(ip)
 
-    return NextResponse.json({
-      reply,
-      remaining: DEMO_LIMIT - (currentCount + 1),
+    // FIX: Stream the response body directly instead of parsing JSON
+    return new NextResponse(response.body, {
+      headers: { 
+        'Content-Type': 'application/x-ndjson',
+        'X-Remaining-Limit': (DEMO_LIMIT - (currentCount + 1)).toString()
+      }
     })
+
   } catch (error) {
     console.error('Demo chat error:', error)
-    return NextResponse.json({ error: 'An error occurred while processing your request' }, { status: 500 })
+    return NextResponse.json({ error: 'An error occurred' }, { status: 500 })
   }
 }
