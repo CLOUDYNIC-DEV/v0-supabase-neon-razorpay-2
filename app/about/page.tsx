@@ -36,7 +36,7 @@ export default function About() {
               <h3 className="text-2xl font-bold mb-2">ADHARSH</h3>
               <p className="text-sm text-muted-foreground mb-4 font-bold">CEO</p>
               <p className="leading-relaxed mb-4">
-                Adharsh brings extensive experience from leading multiple tech ventures. As CEO, Adharsh drives product innovation and business growth while maintaining CloudyNIC&apos;s core mission of making AI affordable and accessible.
+                Adharsh brings extensive experience from leading multiple tech ventures. As CEO, Adharsh drives product innovation and business growth while maintaining Cloudynic&apos;s core mission of making AI affordable and accessible.
               </p>
               <p className="text-muted-foreground text-sm">
                 Focus on customer success and sustainable growth.
