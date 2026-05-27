@@ -278,7 +278,7 @@ export default function Dashboard() {
               <div className="flex-shrink-0 h-6 w-6 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xs">2</div>
               <div className="flex-1">
                 <p className="font-bold text-base mb-1">Configure Your Back-End Variables</p>
-                <p className="text-muted-foreground mb-3">Inside your newly forked repository, navigate to and edit the file located at <code className="bg-background px-1 border font-mono text-xs">netlify/functions/chat.js</code>. Inject your secure credentials directly into the code configurations:</p>
+                <p className="text-muted-foreground mb-3">Inside your newly forked repository, navigate to and edit the file located at <code className="bg-background px-1 border font-mono text-xs">netlify/functions/chat.js</code>. You can edit these configurations on that code to make it yours.</p>
                 <pre className="text-xs bg-background p-3 border border-foreground font-mono overflow-x-auto whitespace-pre block leading-relaxed">
 {`// CHAT API CONFIGURATION
 const API_KEY = "YOUR_API_KEY_HERE"; // Copy an active key from the section above
@@ -299,7 +299,7 @@ const BOTTOM_BOX_AD_SLOT   = "0987654321";            // Your bottom layout ad u
               <div className="flex-1">
                 <p className="font-bold text-base mb-1">Deploy Live to Netlify</p>
                 <p className="text-muted-foreground mb-2">Go to <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer" className="underline font-bold text-foreground">Netlify.com</a> and sign up or sign in using your <strong>GitHub account</strong>. Click <strong>"Add new site"</strong>, choose <strong>"Import an existing project"</strong>, select your newly forked repository, and click <strong>"Deploy"</strong>.</p>
-                <p className="text-xs text-muted-foreground bg-background p-2 border border-dashed border-foreground"> Your dynamic, chat web app infrastructure initializes instantly and goes live. Now you can access it using the url highlighted. </p>
+                <p className="text-xs text-muted-foreground bg-background p-2 border border-dashed border-foreground"> Boom! Your dynamic, chat web app infrastructure initializes instantly and goes live. Now you can access it using the URL highlighted. </p>
               </div>
             </div>
 
@@ -310,7 +310,8 @@ const BOTTOM_BOX_AD_SLOT   = "0987654321";            // Your bottom layout ad u
                 <p className="font-bold text-base mb-1">Production Domain &amp; Monetization Approval</p>
                 <ul className="list-disc ml-4 space-y-2 text-muted-foreground">
                   <li><strong>Custom Branding:</strong> Inside your site dashboard on Netlify, access your <strong>Domain Configuration</strong> settings to point the platform to your custom domain if you own one.</li>
-                  <li><strong>Activate Monetization Earnings:</strong> Sign up for an account at <a href="https://adsense.google.com" target="_blank" rel="noopener noreferrer" className="underline font-bold text-foreground">Google AdSense</a>. Once your custom domain is approved by Google, fill out your unique publisher variable blocks in step 2. Ad units will launch automatically to begin gathering ad revenue stream earnings.</li>
+                  <li><strong>Activate Monetization Earnings:</strong> Sign up for an account at <a href="https://adsense.google.com" target="_blank" rel="noopener noreferrer" className="underline font-bold text-foreground">Google AdSense</a>. Once your custom domain is approved by Google, fill out your unique publisher variable blocks in step 2. Ad units will launch automatically to begin gathering ad revenue stream earnings. And you are totally done.</li>
+                  <li>Now you can sit on your sofa and rest while the app is earning without any work. Enjoy your earnings.</li>
                 </ul>
               </div>
             </div>
