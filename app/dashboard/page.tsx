@@ -234,18 +234,15 @@ export default function Dashboard() {
             <h3 className="text-xl font-bold mb-4">TECHNICAL SPECIFICATIONS</h3>
             <div className="bg-card border-2 border-foreground p-4 space-y-4">
               <div>
-                <p className="font-bold text-xs mb-1">API ENDPOINT:</p>
+                <p className="font-bold text-xs mb-1">API URL</p>
                 <p className="text-xs font-mono bg-background p-2 border border-foreground break-all">
-                  https://cloudynic.com/api/v1/prompt
+                  https://cloudynic.com/api/v1/prompt?prompt=hello
                 </p>
               </div>
               <div>
                 <p className="font-bold text-xs mb-1">RATE LIMITS:</p>
                 <ul className="text-xs space-y-1 ml-4 list-disc text-muted-foreground">
                   <li><strong className="text-foreground">Free:</strong> 1 req/min, 100 req/day (IP-based)</li>
-                  <li><strong className="text-foreground">Pro:</strong> 30 req/min, 10,000 req/day</li>
-                  <li><strong className="text-foreground">Pro Max:</strong> Unlimited usage</li>
-                </ul>
               </div>
             </div>
           </div>
