@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient()
@@ -80,11 +81,11 @@ export default function Dashboard() {
         console.error('Failed to fetch API keys:', err)
       }
 
-      setLoading(false)
+      loading && setLoading(false)
     }
 
     checkAuth()
-  }, [router])
+  }, [router, loading])
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -175,7 +176,7 @@ export default function Dashboard() {
         </div>
 
         {/* API Keys Section */}
-        <div className="border-4 border-foreground p-4 sm:p-6 md:p-8">
+        <div className="border-4 border-foreground p-4 sm:p-6 md:p-8 mb-8 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">API KEYS</h2>
 
           {apiKeys.length > 0 ? (
@@ -194,16 +195,16 @@ export default function Dashboard() {
                         {key.api_key}
                       </p>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
                           navigator.clipboard.writeText(key.api_key)
-                          const btn = event?.target as HTMLButtonElement
+                          const btn = e.currentTarget
                           const originalText = btn.textContent
                           btn.textContent = '✓ COPIED'
                           setTimeout(() => {
                             btn.textContent = originalText
                           }, 1500)
                         }}
-                        className="text-xs px-2 py-1 border border-foreground hover:bg-foreground hover:text-background transition-all"
+                        className="text-xs px-2 py-1 border border-foreground hover:bg-foreground hover:text-background transition-all font-bold"
                       >
                         COPY
                       </button>
@@ -228,65 +229,95 @@ export default function Dashboard() {
             <p className="text-muted-foreground mb-6">No API keys generated yet.</p>
           )}
 
-          {/* Setup Instructions */}
+          {/* Core Technical Reference Block */}
           <div className="mt-8 border-t-2 border-foreground pt-8">
-            <h3 className="text-2xl font-bold mb-4">SETUP INSTRUCTIONS</h3>
-            <div className="bg-card border-2 border-foreground p-6 space-y-6">
+            <h3 className="text-xl font-bold mb-4">TECHNICAL SPECIFICATIONS</h3>
+            <div className="bg-card border-2 border-foreground p-4 space-y-4">
               <div>
-                <p className="font-bold mb-2">API ENDPOINT:</p>
-                <p className="text-sm font-mono bg-background p-3 border border-foreground break-all">
+                <p className="font-bold text-xs mb-1">API ENDPOINT:</p>
+                <p className="text-xs font-mono bg-background p-2 border border-foreground break-all">
                   https://cloudynic.com/api/v1/prompt
                 </p>
               </div>
-
               <div>
-                <p className="font-bold mb-2">GET REQUEST (Simple):</p>
-                <code className="text-xs bg-background p-3 border border-foreground block overflow-x-auto">
-                  {`GET https://cloudynic.com/api/v1/prompt?prompt=hello&key=YOUR_API_KEY`}
-                </code>
-              </div>
-
-              <div>
-                <p className="font-bold mb-2">POST REQUEST (JSON):</p>
-                <code className="text-xs bg-background p-3 border border-foreground block overflow-x-auto">
-                  {`curl -X POST https://cloudynic.com/api/v1/prompt \\
-  -H "Content-Type: application/json" \\
-  -d '{"prompt": "Your question", "key": "YOUR_API_KEY"}'`}
-                </code>
-              </div>
-
-              <div>
-                <p className="font-bold mb-2">RATE LIMITS:</p>
-                <ul className="text-sm space-y-2 ml-4 list-disc">
-                  <li>Free: 1 request/minute, 100 requests/day (IP-based)</li>
-                  <li>Pro: 30 requests/minute, 10,000 requests/day</li>
-                  <li>Pro Max: Unlimited requests</li>
+                <p className="font-bold text-xs mb-1">RATE LIMITS:</p>
+                <ul className="text-xs space-y-1 ml-4 list-disc text-muted-foreground">
+                  <li><strong className="text-foreground">Free:</strong> 1 req/min, 100 req/day (IP-based)</li>
+                  <li><strong className="text-foreground">Pro:</strong> 30 req/min, 10,000 req/day</li>
+                  <li><strong className="text-foreground">Pro Max:</strong> Unlimited usage</li>
                 </ul>
-              </div>
-
-              <div>
-                <p className="font-bold mb-2">JAVASCRIPT EXAMPLE:</p>
-                <code className="text-xs bg-background p-3 border border-foreground block overflow-x-auto">
-                  {`const response = await fetch('https://cloudynic.com/api/v1/prompt', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ prompt: 'Your question', key: 'YOUR_API_KEY' })
-});
-const data = await response.json();
-console.log(data.response);`}
-                </code>
-              </div>
-
-              <div>
-                <p className="font-bold mb-2">FREE TIER (NO KEY NEEDED):</p>
-                <code className="text-xs bg-background p-3 border border-foreground block overflow-x-auto">
-                  {`GET https://cloudynic.com/api/v1/prompt?prompt=hello`}
-                </code>
-                <p className="text-xs text-muted-foreground mt-2">Rate limited to 1 request/minute per IP address</p>
               </div>
             </div>
           </div>
         </div>
+
+        {/* New 1-Click Complete Setup Deployment Manual */}
+        <div className="border-4 border-foreground p-4 sm:p-6 md:p-8 bg-card">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">DEPLOY YOUR CHAT APP (EARN WITH ADSENSE)</h2>
+          <div className="space-y-6 text-sm">
+            
+            {/* Step 1 */}
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 h-6 w-6 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xs">1</div>
+              <div className="flex-1">
+                <p className="font-bold text-base mb-1">Fork the Official Repository</p>
+                <p className="text-muted-foreground mb-3">Sign up or log in to your account at GitHub. Then, visit the official source repository and click the <strong>"Fork"</strong> button in the top-right to copy it into your own account.</p>
+                <a 
+                  href="https://github.com/CLOUDYNIC-DEV/AI-APP" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-block text-xs font-bold px-3 py-1.5 border-2 border-foreground bg-background hover:bg-foreground hover:text-background transition-all"
+                >
+                  VISIT REPOSITORY ↗
+                </a>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 h-6 w-6 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xs">2</div>
+              <div className="flex-1">
+                <p className="font-bold text-base mb-1">Configure Your Back-End Variables</p>
+                <p className="text-muted-foreground mb-3">Inside your newly forked repository, navigate to and edit the file located at <code className="bg-background px-1 border font-mono text-xs">netlify/functions/chat.js</code>. Inject your secure credentials directly into the code configurations:</p>
+                <pre className="text-xs bg-background p-3 border border-foreground font-mono overflow-x-auto whitespace-pre block leading-relaxed">
+{`// CHAT API CONFIGURATION
+const API_KEY = "YOUR_API_KEY_HERE"; // Copy an active key from the section above
+const TRAIN_TEXT = "Your Custom Training System Context Instructions";
+const APP_NAME = "Your Premium AI Brand Name";
+
+// ADSENSE MONETIZATION CONFIGURATION
+const ADSENSE_PUBLISHER_ID = "ca-pub-XXXXXXXXXXXXXXXX"; // Your real AdSense Pub ID
+const TOP_BANNER_AD_SLOT   = "1234567890";            // Your top layout ad unit slot
+const BOTTOM_BOX_AD_SLOT   = "0987654321";            // Your bottom layout ad unit slot`}
+                </pre>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 h-6 w-6 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xs">3</div>
+              <div className="flex-1">
+                <p className="font-bold text-base mb-1">Deploy Live to Netlify</p>
+                <p className="text-muted-foreground mb-2">Go to <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer" className="underline font-bold text-foreground">Netlify.com</a> and sign up or sign in using your <strong>GitHub account</strong>. Click <strong>"Add new site"</strong>, choose <strong>"Import an existing project"</strong>, select your newly forked repository, and click <strong>"Deploy"</strong>.</p>
+                <p className="text-xs text-muted-foreground bg-background p-2 border border-dashed border-foreground"> Your dynamic, secure web app infrastructure initializes instantly and goes live upon compile completion!</p>
+              </div>
+            </div>
+
+            {/* Step 4 */}
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 h-6 w-6 rounded-full bg-foreground text-background flex items-center justify-center font-bold text-xs">4</div>
+              <div className="flex-1">
+                <p className="font-bold text-base mb-1">Production Domain &amp; Monetization Approval</p>
+                <ul className="list-disc ml-4 space-y-2 text-muted-foreground">
+                  <li><strong>Custom Branding:</strong> Inside your site dashboard on Netlify, access your <strong>Domain Configuration</strong> settings to point the platform to your custom domain if you own one.</li>
+                  <li><strong>Activate Monetization Earnings:</strong> Sign up for an account at <a href="https://adsense.google.com" target="_blank" rel="noopener noreferrer" className="underline font-bold text-foreground">Google AdSense</a>. Once your custom domain is approved by Google, fill out your unique publisher variable blocks in step 2. Ad units will launch automatically to begin gathering ad revenue stream earnings.</li>
+                </ul>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </main>
   )
