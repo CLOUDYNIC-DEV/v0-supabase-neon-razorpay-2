@@ -253,7 +253,7 @@ export default function Dashboard() {
 
         {/* New 1-Click Complete Setup Deployment Manual */}
         <div className="border-4 border-foreground p-4 sm:p-6 md:p-8 bg-card">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">DEPLOY YOUR CHAT APP (EARN WITH ADSENSE)</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">DEPLOY YOUR CHAT APP AND EARN WITH ADS.</h2>
           <div className="space-y-6 text-sm">
             
             {/* Step 1 */}
@@ -299,7 +299,7 @@ const BOTTOM_BOX_AD_SLOT   = "0987654321";            // Your bottom layout ad u
               <div className="flex-1">
                 <p className="font-bold text-base mb-1">Deploy Live to Netlify</p>
                 <p className="text-muted-foreground mb-2">Go to <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer" className="underline font-bold text-foreground">Netlify.com</a> and sign up or sign in using your <strong>GitHub account</strong>. Click <strong>"Add new site"</strong>, choose <strong>"Import an existing project"</strong>, select your newly forked repository, and click <strong>"Deploy"</strong>.</p>
-                <p className="text-xs text-muted-foreground bg-background p-2 border border-dashed border-foreground"> Your dynamic, secure web app infrastructure initializes instantly and goes live upon compile completion!</p>
+                <p className="text-xs text-muted-foreground bg-background p-2 border border-dashed border-foreground"> Your dynamic, chat web app infrastructure initializes instantly and goes live. Now you can access it using the url highlighted. </p>
               </div>
             </div>
 
