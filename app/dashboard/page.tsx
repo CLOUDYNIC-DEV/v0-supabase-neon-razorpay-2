@@ -243,6 +243,7 @@ export default function Dashboard() {
                 <p className="font-bold text-xs mb-1">RATE LIMITS:</p>
                 <ul className="text-xs space-y-1 ml-4 list-disc text-muted-foreground">
                   <li><strong className="text-foreground">Free:</strong> 1 req/min, 100 req/day (IP-based)</li>
+                </ul>
               </div>
             </div>
           </div>
