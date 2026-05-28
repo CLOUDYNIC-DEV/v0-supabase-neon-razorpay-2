@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateApiKey, checkRateLimit, logApiUsage, getLoadBalancer } from '@/lib/api-utils'
 
-// Modified to accept an optional train instruction parameter
-async function getAIResponse(prompt: string, trainInstruction?: string | null): Promise<string> {
+// Stream-based response with proper error handling
+async function getAIResponseStream(prompt: string, trainInstruction?: string | null): Promise<{
+  stream: ReadableStream | null
+  endpoint: string | null
+  error?: string
+}> {
   const loadBalancer = getLoadBalancer()
 
   // Standard core system message
@@ -35,36 +39,57 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
           },
           { role: 'user', content: prompt },
         ],
-        stream: false,
+        stream: true,
       }),
     })
 
-    if (response.ok) {
-      const data = await response.json()
-      loadBalancer.releaseEndpoint(selectedEndpoint, true)
-      return data.message?.content || 'I could not generate a response.'
-    } else {
-      console.error('[v0] Hugging Face API error:', response.status, selectedEndpoint)
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`[v0] HF Endpoint Fail [${response.status}]: ${selectedEndpoint}`, errorText)
       loadBalancer.releaseEndpoint(selectedEndpoint, false)
-      return `Cloudynic AI: Unable to process your request at this moment. Please try again.`
+      return {
+        stream: null,
+        endpoint: null,
+        error: `Upstream error: ${response.status}`
+      }
+    }
+
+    if (!response.body) {
+      console.error('[v0] Empty stream body from endpoint:', selectedEndpoint)
+      loadBalancer.releaseEndpoint(selectedEndpoint, false)
+      return {
+        stream: null,
+        endpoint: null,
+        error: 'Empty response body'
+      }
+    }
+
+    return {
+      stream: response.body as ReadableStream,
+      endpoint: selectedEndpoint,
     }
   } catch (error) {
     console.error('[v0] AI response error:', error)
     if (selectedEndpoint) {
       loadBalancer.releaseEndpoint(selectedEndpoint, false)
     }
-    return `Cloudynic AI: Service temporarily unavailable. Please try again later.`
+    return {
+      stream: null,
+      endpoint: null,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
   }
 }
 
 export async function GET(req: NextRequest) {
   const startTime = Date.now()
+  let selectedEndpoint: string | null = null
 
   try {
     const searchParams = req.nextUrl.searchParams
     const prompt = searchParams.get('prompt')
     const apiKey = searchParams.get('key')
-    const train = searchParams.get('train') // Extracted the train query parameter
+    const train = searchParams.get('train')
 
     if (!prompt) {
       return new NextResponse('Error: missing prompt parameter', {
@@ -97,7 +122,6 @@ export async function GET(req: NextRequest) {
     // Check rate limit
     const canProceed = await checkRateLimit(userId, planTier)
     if (!canProceed) {
-      const responseTime = Date.now() - startTime
       return new NextResponse(
         `Error: rate limit exceeded for ${planTier} plan`,
         {
@@ -107,12 +131,35 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Get AI response (passing the train variable)
-    const response = await getAIResponse(prompt, train)
+    // Get streaming response
+    const { stream, endpoint, error } = await getAIResponseStream(prompt, train)
+    selectedEndpoint = endpoint
 
-    const responseTime = Date.now() - startTime
+    if (error || !stream) {
+      return new NextResponse(
+        `Error: ${error || 'Failed to get response'}`,
+        {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain' },
+        },
+      )
+    }
+
+    // Create transformer to wrap stream and release endpoint when done
+    const transformer = new TransformStream({
+      async transform(chunk, controller) {
+        controller.enqueue(chunk)
+      },
+      async flush(controller) {
+        getLoadBalancer().releaseEndpoint(selectedEndpoint!, true)
+        console.log('[v0] V1 API GET stream completed and endpoint released')
+      }
+    })
+
+    const transformedStream = stream.pipeThrough(transformer)
 
     // Log usage (async, don't wait)
+    const responseTime = Date.now() - startTime
     if (userId && !userId.startsWith('ip_')) {
       logApiUsage(
         userId,
@@ -125,16 +172,19 @@ export async function GET(req: NextRequest) {
       ).catch(console.error)
     }
 
-    return new NextResponse(response, {
+    return new NextResponse(transformedStream, {
       status: 200,
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-      },
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+      }
     })
   } catch (error) {
-    console.error('API error:', error)
-    const responseTime = Date.now() - startTime
+    console.error('[v0] API error:', error)
+    if (selectedEndpoint) {
+      getLoadBalancer().releaseEndpoint(selectedEndpoint, false)
+    }
 
     return new NextResponse('Error: internal server error', {
       status: 500,
@@ -145,9 +195,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now()
+  let selectedEndpoint: string | null = null
 
   try {
-    const { prompt, key, train } = await req.json() // Destructured the optional train parameter
+    const { prompt, key, train } = await req.json()
 
     if (!prompt) {
       return new NextResponse(
@@ -186,7 +237,6 @@ export async function POST(req: NextRequest) {
     // Check rate limit
     const canProceed = await checkRateLimit(userId, planTier)
     if (!canProceed) {
-      const responseTime = Date.now() - startTime
       return new NextResponse(
         JSON.stringify({
           error: `rate limit exceeded for ${planTier} plan`,
@@ -198,12 +248,35 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Get AI response (passing the train variable)
-    const response = await getAIResponse(prompt, train)
+    // Get streaming response
+    const { stream, endpoint, error } = await getAIResponseStream(prompt, train)
+    selectedEndpoint = endpoint
 
-    const responseTime = Date.now() - startTime
+    if (error || !stream) {
+      return new NextResponse(
+        JSON.stringify({ error: error || 'Failed to get response' }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      )
+    }
+
+    // Create transformer to wrap stream and release endpoint when done
+    const transformer = new TransformStream({
+      async transform(chunk, controller) {
+        controller.enqueue(chunk)
+      },
+      async flush(controller) {
+        getLoadBalancer().releaseEndpoint(selectedEndpoint!, true)
+        console.log('[v0] V1 API POST stream completed and endpoint released')
+      }
+    })
+
+    const transformedStream = stream.pipeThrough(transformer)
 
     // Log usage (async, don't wait)
+    const responseTime = Date.now() - startTime
     if (userId && !userId.startsWith('ip_')) {
       logApiUsage(
         userId,
@@ -216,16 +289,19 @@ export async function POST(req: NextRequest) {
       ).catch(console.error)
     }
 
-    return NextResponse.json(
-      { response },
-      {
-        status: 200,
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
-      },
-    )
+    return new NextResponse(transformedStream, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+      }
+    })
   } catch (error) {
-    console.error('API error:', error)
-    const responseTime = Date.now() - startTime
+    console.error('[v0] API error:', error)
+    if (selectedEndpoint) {
+      getLoadBalancer().releaseEndpoint(selectedEndpoint, false)
+    }
 
     return new NextResponse(
       JSON.stringify({ error: 'internal server error' }),

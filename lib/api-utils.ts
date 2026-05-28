@@ -8,12 +8,20 @@ declare global {
 
 // Load Balancer with Queue System
 const ENDPOINTS = [
+  // DarkMind Forever servers
   "https://darkmindforever-server.hf.space/v1/chat/completions",
   "https://darkmindforever-server2.hf.space/v1/chat/completions",
   "https://darkmindforever-server3.hf.space/v1/chat/completions",
   "https://darkmindforever-server4.hf.space/v1/chat/completions",
   "https://darkmindforever-server5.hf.space/v1/chat/completions",
-  "https://darkmindforever-server6.hf.space/v1/chat/completions"
+  "https://darkmindforever-server6.hf.space/v1/chat/completions",
+  // ResearchQ servers
+  "http://researchq-server.hf.space/v1/chat/completions",
+  "http://researchq-server1.hf.space/v1/chat/completions",
+  "http://researchq-server2.hf.space/v1/chat/completions",
+  "http://researchq-server3.hf.space/v1/chat/completions",
+  "http://researchq-server4.hf.space/v1/chat/completions",
+  "http://researchq-server5.hf.space/v1/chat/completions"
 ]
 
 const MAX_USERS_PER_ENDPOINT = 10
