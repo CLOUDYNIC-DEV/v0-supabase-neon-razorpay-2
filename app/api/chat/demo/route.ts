@@ -39,14 +39,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    // Get endpoint with load balancing and queue
-    console.log('[v0] Demo chat: Requesting endpoint from load balancer...')
-    selectedEndpoint = await loadBalancer.getEndpoint()
-    loadBalancer.acquireEndpoint(selectedEndpoint)
+    selectedEndpoint = loadBalancer.getEndpoint()
+    console.log(`[v0] Demo: Using endpoint: ${selectedEndpoint.split('/')[2]}`)
 
-    console.log(`[v0] Demo chat: Using endpoint: ${selectedEndpoint.split('/')[2]}`)
-
-    // Hugging Face standard configuration
     const response = await fetch(selectedEndpoint, {
       method: 'POST',
       headers: { 
@@ -57,7 +52,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI. State clearly that you were built by cloudynic.com. Never mention Meta, Meta AI, or Llama.',
+            content: 'You are Cloudynic AI, built and trained by cloudynic.com. No Meta, Meta AI, or OpenAI connection. State you were built by cloudynic.com.',
           },
           { role: 'user', content: message },
         ],
@@ -67,51 +62,28 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[v0] HF Endpoint Fail [${response.status}]: ${selectedEndpoint}`, errorText);
-      loadBalancer.releaseEndpoint(selectedEndpoint, false)
-      return NextResponse.json({ error: `Upstream Space Error: ${response.status}` }, { status: response.status })
+      console.error(`[v0] Endpoint error [${response.status}]: ${selectedEndpoint}`, errorText);
+      return NextResponse.json({ error: `Error: ${response.status}` }, { status: response.status })
     }
 
     if (!response.body) {
-      console.error('[v0] Empty stream body from endpoint:', selectedEndpoint)
-      loadBalancer.releaseEndpoint(selectedEndpoint, false)
-      return NextResponse.json({ error: 'Empty stream body from Hugging Face' }, { status: 500 })
+      console.error('[v0] Empty response body:', selectedEndpoint)
+      return NextResponse.json({ error: 'No response' }, { status: 500 })
     }
 
     incrementDemoCount(ip)
 
-    // Create a passthrough stream that releases endpoint when done
-    if (response.body) {
-      const transformer = new TransformStream({
-        async transform(chunk, controller) {
-          controller.enqueue(chunk)
-        },
-        async flush(controller) {
-          loadBalancer.releaseEndpoint(selectedEndpoint!, true)
-          console.log('[v0] Demo stream completed and endpoint released')
-        }
-      })
-
-      const stream = response.body.pipeThrough(transformer)
-
-      return new NextResponse(stream, {
-        headers: { 
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache, no-transform',
-          'Connection': 'keep-alive',
-          'X-Remaining-Limit': (DEMO_LIMIT - (currentCount + 1)).toString()
-        }
-      })
-    }
-
-    loadBalancer.releaseEndpoint(selectedEndpoint, false)
-    return NextResponse.json({ error: 'Failed to get response body' }, { status: 500 })
+    return new NextResponse(response.body, {
+      headers: { 
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Remaining-Limit': (DEMO_LIMIT - (currentCount + 1)).toString()
+      }
+    })
 
   } catch (error: any) {
-    console.error('[v0] Demo route streaming error:', error?.message || error)
-    if (selectedEndpoint) {
-      loadBalancer.releaseEndpoint(selectedEndpoint, false)
-    }
-    return NextResponse.json({ error: `Pipeline Error: ${error?.message || error}` }, { status: 500 })
+    console.error('[v0] Demo error:', error?.message || error)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

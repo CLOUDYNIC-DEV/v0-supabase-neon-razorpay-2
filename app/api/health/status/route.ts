@@ -7,15 +7,18 @@ export async function GET(request: NextRequest) {
     const status = loadBalancer.getStatus()
 
     return NextResponse.json({
-      status: 'healthy',
+      status: 'operational',
       timestamp: new Date().toISOString(),
-      loadBalancer: status,
-      message: `Running with ${status.totalEndpoints} endpoints. Queue size: ${status.queueSize}`
+      loadBalancer: {
+        totalEndpoints: status.totalEndpoints,
+        totalRequests: status.totalRequests,
+        currentIndex: status.currentIndex,
+        endpoints: status.endpoints.length
+      }
     })
   } catch (error: any) {
     return NextResponse.json({
       status: 'error',
-      timestamp: new Date().toISOString(),
       error: error?.message || 'Unknown error'
     }, { status: 500 })
   }

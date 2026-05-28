@@ -6,7 +6,7 @@ declare global {
   var endpointLoadBalancer: EndpointLoadBalancer | undefined
 }
 
-// Load Balancer with Queue System
+// Simple Round-Robin Load Balancer
 const ENDPOINTS = [
   // DarkMind Forever servers
   "https://darkmindforever-server.hf.space/v1/chat/completions",
@@ -24,189 +24,37 @@ const ENDPOINTS = [
   "http://researchq-server5.hf.space/v1/chat/completions"
 ]
 
-const MAX_USERS_PER_ENDPOINT = 10
-const HEALTH_CHECK_INTERVAL = 30000 // 30 seconds
-const REQUEST_TIMEOUT = 120000 // 2 minutes
+class SimpleLoadBalancer {
+  private currentIndex = 0
+  private requestCount = 0
 
-interface EndpointStatus {
-  url: string
-  activeUsers: number
-  healthy: boolean
-  lastHealthCheck: number
-  totalRequests: number
-  failedRequests: number
-}
-
-interface QueuedRequest {
-  id: string
-  resolve: (endpoint: string) => void
-  reject: (error: Error) => void
-  timeout: NodeJS.Timeout
-}
-
-class EndpointLoadBalancer {
-  private endpoints: Map<string, EndpointStatus>
-  private queue: QueuedRequest[] = []
-  private healthCheckInterval: NodeJS.Timeout | null = null
-
-  constructor() {
-    this.endpoints = new Map()
-    ENDPOINTS.forEach(url => {
-      this.endpoints.set(url, {
-        url,
-        activeUsers: 0,
-        healthy: true,
-        lastHealthCheck: Date.now(),
-        totalRequests: 0,
-        failedRequests: 0
-      })
-    })
-    this.startHealthChecks()
-  }
-
-  private startHealthChecks() {
-    if (this.healthCheckInterval) return
-    
-    this.healthCheckInterval = setInterval(() => {
-      this.checkEndpointHealth()
-    }, HEALTH_CHECK_INTERVAL)
-  }
-
-  private async checkEndpointHealth() {
-    for (const [url, status] of this.endpoints) {
-      try {
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 5000)
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'tgi',
-            messages: [{ role: 'user', content: 'ping' }],
-            stream: false,
-          }),
-          signal: controller.signal
-        })
-        
-        clearTimeout(timeout)
-        status.healthy = response.ok
-      } catch (error) {
-        status.healthy = false
-      }
-      status.lastHealthCheck = Date.now()
-    }
-  }
-
-  async getEndpoint(): Promise<string> {
-    // Find available endpoint
-    const available = this.getAvailableEndpoint()
-    if (available) {
-      return available
-    }
-
-    // All endpoints at capacity, add to queue
-    return new Promise((resolve, reject) => {
-      const id = Math.random().toString(36)
-      const timeout = setTimeout(() => {
-        const index = this.queue.findIndex(r => r.id === id)
-        if (index > -1) {
-          this.queue.splice(index, 1)
-        }
-        reject(new Error('Queue timeout: No available endpoints after 2 minutes'))
-      }, REQUEST_TIMEOUT)
-
-      const queuedRequest: QueuedRequest = {
-        id,
-        resolve,
-        reject,
-        timeout
-      }
-
-      this.queue.push(queuedRequest)
-      console.log(`[v0] Request queued. Queue size: ${this.queue.length}`)
-    })
-  }
-
-  private getAvailableEndpoint(): string | null {
-    // Sort by health and active users
-    const sorted = Array.from(this.endpoints.values())
-      .filter(ep => ep.healthy)
-      .sort((a, b) => a.activeUsers - b.activeUsers)
-
-    for (const endpoint of sorted) {
-      if (endpoint.activeUsers < MAX_USERS_PER_ENDPOINT) {
-        return endpoint.url
-      }
-    }
-
-    return null
-  }
-
-  acquireEndpoint(url: string) {
-    const status = this.endpoints.get(url)
-    if (status) {
-      status.activeUsers++
-      status.totalRequests++
-      console.log(`[v0] Endpoint acquired: ${url.split('/')[2]} | Active: ${status.activeUsers}/${MAX_USERS_PER_ENDPOINT}`)
-    }
-  }
-
-  releaseEndpoint(url: string, success: boolean = true) {
-    const status = this.endpoints.get(url)
-    if (status) {
-      status.activeUsers = Math.max(0, status.activeUsers - 1)
-      if (!success) {
-        status.failedRequests++
-      }
-
-      // Process queue
-      if (this.queue.length > 0) {
-        const available = this.getAvailableEndpoint()
-        if (available) {
-          const queued = this.queue.shift()
-          if (queued) {
-            clearTimeout(queued.timeout)
-            queued.resolve(available)
-          }
-        }
-      }
-
-      console.log(`[v0] Endpoint released: ${url.split('/')[2]} | Active: ${status.activeUsers}/${MAX_USERS_PER_ENDPOINT} | Queue: ${this.queue.length}`)
-    }
+  getEndpoint(): string {
+    const endpoint = ENDPOINTS[this.currentIndex]
+    this.currentIndex = (this.currentIndex + 1) % ENDPOINTS.length
+    this.requestCount++
+    console.log(`[v0] Using endpoint ${this.currentIndex}: ${endpoint.split('/')[2]}`)
+    return endpoint
   }
 
   getStatus() {
-    const statusArray = Array.from(this.endpoints.values()).map(ep => ({
-      endpoint: ep.url.split('/')[2],
-      activeUsers: ep.activeUsers,
-      healthy: ep.healthy,
-      totalRequests: ep.totalRequests,
-      failedRequests: ep.failedRequests
-    }))
-
     return {
-      endpoints: statusArray,
-      queueSize: this.queue.length,
-      totalEndpoints: ENDPOINTS.length
+      totalEndpoints: ENDPOINTS.length,
+      totalRequests: this.requestCount,
+      currentIndex: this.currentIndex,
+      endpoints: ENDPOINTS.map((url, i) => ({
+        index: i,
+        url: url.split('/')[2],
+        endpoint: url
+      }))
     }
-  }
-
-  destroy() {
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval)
-      this.healthCheckInterval = null
-    }
-    this.queue.forEach(r => clearTimeout(r.timeout))
-    this.queue = []
   }
 }
 
-export function getLoadBalancer(): EndpointLoadBalancer {
+export function getLoadBalancer(): SimpleLoadBalancer {
   if (!global.endpointLoadBalancer) {
-    global.endpointLoadBalancer = new EndpointLoadBalancer()
+    global.endpointLoadBalancer = new SimpleLoadBalancer()
   }
-  return global.endpointLoadBalancer
+  return global.endpointLoadBalancer as SimpleLoadBalancer
 }
 
 export async function generateApiKey(): Promise<string> {
