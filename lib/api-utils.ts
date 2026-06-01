@@ -36,36 +36,97 @@ const ENDPOINTS = [
   "http://researchq-server5.hf.space/v1/chat/completions"
 ]
 
+const MAX_CONNECTIONS_PER_ENDPOINT = 10
+const TOTAL_CAPACITY = ENDPOINTS.length * MAX_CONNECTIONS_PER_ENDPOINT // 120 users
+
+interface EndpointStats {
+  url: string
+  activeConnections: number
+  totalRequests: number
+  isAvailable: boolean
+}
+
 interface EndpointLoadBalancer {
-  getEndpoint(): string
+  getEndpoint(): { endpoint: string; connectionId: string } | null
+  releaseEndpoint(connectionId: string): void
   getStatus(): {
     totalEndpoints: number
+    maxConnectionsPerEndpoint: number
+    totalCapacity: number
+    activeConnections: number
+    availableSlots: number
     totalRequests: number
-    currentIndex: number
-    endpoints: { index: number; url: string; endpoint: string }[]
+    endpoints: EndpointStats[]
   }
 }
 
-class SimpleLoadBalancer implements EndpointLoadBalancer {
-  private currentIndex = 0
-  private requestCount = 0
+class ConnectionTrackingLoadBalancer implements EndpointLoadBalancer {
+  private connections: Map<string, number> = new Map() // connectionId -> endpointIndex
+  private endpointConnections: number[] // activeConnections per endpoint
+  private endpointRequests: number[] // total requests per endpoint
+  private totalRequests = 0
 
-  getEndpoint(): string {
-    const endpoint = ENDPOINTS[this.currentIndex]
-    this.currentIndex = (this.currentIndex + 1) % ENDPOINTS.length
-    this.requestCount++
-    return endpoint
+  constructor() {
+    this.endpointConnections = new Array(ENDPOINTS.length).fill(0)
+    this.endpointRequests = new Array(ENDPOINTS.length).fill(0)
+  }
+
+  getEndpoint(): { endpoint: string; connectionId: string } | null {
+    // Find the endpoint with the least connections that's not at max
+    let bestIndex = -1
+    let minConnections = MAX_CONNECTIONS_PER_ENDPOINT + 1
+
+    for (let i = 0; i < ENDPOINTS.length; i++) {
+      if (this.endpointConnections[i] < MAX_CONNECTIONS_PER_ENDPOINT && 
+          this.endpointConnections[i] < minConnections) {
+        minConnections = this.endpointConnections[i]
+        bestIndex = i
+      }
+    }
+
+    // All endpoints are at max capacity
+    if (bestIndex === -1) {
+      return null
+    }
+
+    // Generate unique connection ID
+    const connectionId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    // Track the connection
+    this.connections.set(connectionId, bestIndex)
+    this.endpointConnections[bestIndex]++
+    this.endpointRequests[bestIndex]++
+    this.totalRequests++
+
+    return {
+      endpoint: ENDPOINTS[bestIndex],
+      connectionId
+    }
+  }
+
+  releaseEndpoint(connectionId: string): void {
+    const endpointIndex = this.connections.get(connectionId)
+    if (endpointIndex !== undefined) {
+      this.endpointConnections[endpointIndex] = Math.max(0, this.endpointConnections[endpointIndex] - 1)
+      this.connections.delete(connectionId)
+    }
   }
 
   getStatus() {
+    const activeConnections = this.endpointConnections.reduce((sum, c) => sum + c, 0)
+    
     return {
       totalEndpoints: ENDPOINTS.length,
-      totalRequests: this.requestCount,
-      currentIndex: this.currentIndex,
+      maxConnectionsPerEndpoint: MAX_CONNECTIONS_PER_ENDPOINT,
+      totalCapacity: TOTAL_CAPACITY,
+      activeConnections,
+      availableSlots: TOTAL_CAPACITY - activeConnections,
+      totalRequests: this.totalRequests,
       endpoints: ENDPOINTS.map((url, i) => ({
-        index: i,
         url: url.split('/')[2],
-        endpoint: url
+        activeConnections: this.endpointConnections[i],
+        totalRequests: this.endpointRequests[i],
+        isAvailable: this.endpointConnections[i] < MAX_CONNECTIONS_PER_ENDPOINT
       }))
     }
   }
@@ -73,7 +134,7 @@ class SimpleLoadBalancer implements EndpointLoadBalancer {
 
 export function getLoadBalancer(): EndpointLoadBalancer {
   if (!global.endpointLoadBalancer) {
-    global.endpointLoadBalancer = new SimpleLoadBalancer()
+    global.endpointLoadBalancer = new ConnectionTrackingLoadBalancer()
   }
   return global.endpointLoadBalancer as EndpointLoadBalancer
 }
