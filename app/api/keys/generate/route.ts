@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { generateApiKey, getOrCreateUser } from '@/lib/api-utils'
+
+// Get Supabase admin client
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase environment variables')
+  }
+
+  return createSupabaseClient(supabaseUrl, supabaseServiceKey)
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,8 +33,11 @@ export async function POST(req: NextRequest) {
     // Ensure user exists in public.users table
     await getOrCreateUser(user.id, user.email)
 
+    // Use admin client for database operations
+    const adminSupabase = getSupabaseAdmin()
+
     // Get user's subscription to determine plan tier
-    const { data: subscription } = await supabase
+    const { data: subscription } = await adminSupabase
       .from('subscriptions')
       .select('plan_type')
       .eq('user_id', user.id)
@@ -33,16 +49,15 @@ export async function POST(req: NextRequest) {
     const planTier = subscription?.plan_type || 'free'
 
     // Generate new API key
-    const apiKey = await generateApiKey()
+    const apiKeyValue = await generateApiKey()
 
     // Store in database
-    const { data: newKey, error } = await supabase
+    const { data: newKey, error } = await adminSupabase
       .from('api_keys')
       .insert({
         user_id: user.id,
-        key: apiKey,
+        api_key: apiKeyValue,
         name: `API Key ${new Date().toLocaleDateString()}`,
-        plan_tier: planTier,
         is_active: true,
       })
       .select('*')
@@ -59,10 +74,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       key: {
         id: newKey.id,
-        api_key: newKey.key,
+        api_key: newKey.api_key,
         key_name: newKey.name,
         created_at: newKey.created_at,
         is_active: newKey.is_active,
+        plan_tier: planTier,
       },
     })
   } catch (error) {

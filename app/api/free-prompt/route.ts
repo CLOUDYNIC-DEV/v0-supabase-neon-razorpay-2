@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const apiEndpoint = 'http://140.245.196.245:11434/api/chat'
+import { getLoadBalancer } from '@/lib/api-utils'
 
 // In-memory rate limiter for free tier (IP-based, 1 req/min, 100/day)
 const freeRateLimits = new Map<string, { requests: number[]; dailyCount: number; lastReset: number }>()
@@ -57,17 +56,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Rate limit exceeded. Limit: 1 req/min, 100/day' }, { status: 429 })
     }
 
-    // Call Ollama API
-    const response = await fetch(apiEndpoint, {
+    // Use load balancer
+    const loadBalancer = getLoadBalancer()
+    const endpoint = loadBalancer.getEndpoint()
+
+    // Call AI API with streaming
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'mistral',
+        model: 'tgi',
         messages: [
           {
             role: 'system',
-            content:
-              'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team.',
+            content: 'You are Cloudynic AI, built and trained by cloudynic.com. No connection to Meta, Meta AI, or OpenAI. State clearly you were built by cloudynic.com.',
           },
           { role: 'user', content: prompt },
         ],
@@ -77,12 +79,12 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Ollama API error:', response.status, errorText)
+      console.error('API error:', response.status, errorText)
       return NextResponse.json({ error: 'Failed to get response from AI model' }, { status: 500 })
     }
 
     const data = await response.json()
-    const reply = data.message?.content || 'No response generated.'
+    const reply = data.choices?.[0]?.message?.content || data.message?.content || 'No response generated.'
 
     return NextResponse.json({
       response: reply,

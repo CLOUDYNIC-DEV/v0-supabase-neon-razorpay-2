@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
-import { createClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,15 +19,19 @@ export async function POST(req: NextRequest) {
     const { plan, amount, user_id } = await req.json()
 
     if (!plan || !amount || !user_id) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing required fields: plan, amount, user_id' }, { status: 400 })
     }
 
-    // Create order (amount in cents for USD)
-    // Receipt must be max 40 characters
+    // Validate plan type
+    if (!['pro', 'pro_max'].includes(plan)) {
+      return NextResponse.json({ error: 'Invalid plan type. Must be pro or pro_max' }, { status: 400 })
+    }
+
+    // Create order (amount in paise for INR)
     const receipt = `${user_id.substring(0, 15)}-${Date.now()}`.substring(0, 40)
     const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100), // Amount in cents
-      currency: 'USD',
+      amount: Math.round(amount * 100), // Amount in paise
+      currency: 'INR',
       receipt: receipt,
       notes: {
         plan,
@@ -39,6 +42,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       orderId: order.id,
       amount: order.amount,
+      currency: order.currency,
+      key_id: process.env.RAZORPAY_KEY_ID,
     })
   } catch (error) {
     console.error('Error creating order:', error)

@@ -13,9 +13,23 @@ export async function createClient() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error(
-      'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY'
-    )
+    // Return a mock client for when Supabase is not configured
+    return {
+      auth: {
+        getUser: async () => ({ data: { user: null }, error: null }),
+        getSession: async () => ({ data: { session: null }, error: null }),
+        signOut: async () => ({ error: null }),
+        signInWithPassword: async () => ({ data: { user: null, session: null }, error: { message: 'Supabase not configured' } }),
+        signUp: async () => ({ data: { user: null, session: null }, error: { message: 'Supabase not configured' } }),
+        exchangeCodeForSession: async () => ({ data: { user: null, session: null }, error: { message: 'Supabase not configured' } }),
+      },
+      from: () => ({
+        select: () => ({ data: null, error: null, single: () => ({ data: null, error: null }) }),
+        insert: () => ({ data: null, error: null, select: () => ({ single: () => ({ data: null, error: null }) }) }),
+        update: () => ({ data: null, error: null }),
+        delete: () => ({ data: null, error: null }),
+      }),
+    } as any
   }
 
   return createServerClient(
