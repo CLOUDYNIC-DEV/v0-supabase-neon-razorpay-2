@@ -5,7 +5,7 @@ import { validateApiKey, checkRateLimit, logApiUsage, getLoadBalancer, getTraini
 
 // FORCE NEXT.JS TO TREAT THIS ROUTE AS A LIVE, NO-CACHE DYNAMIC STREAM
 export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs' 
+export const runtime = 'nodejs'
 
 // Direct plain-text stream response (no "data: " prefixes or double newlines)
 async function getAIResponse(prompt: string, trainInstruction?: string | null): Promise<{
@@ -16,13 +16,13 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
   const endpointData = loadBalancer.getEndpoint()
 
   if (!endpointData) {
-    return { stream: null, error: 'All servers are currently busy at max capacity. Please try again in a moment.' }
+    return { stream: null, error: 'All servers are currently busy at max capacity. We are still upgrading our hardware.' }
   }
 
   const { endpoint, connectionId } = endpointData
 
   let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI.'
-  
+
   if (trainInstruction) {
     systemMessage += ` Additional instructions: ${trainInstruction}`
   }
@@ -66,7 +66,7 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
 
             buffer += decoder.decode(value, { stream: true })
             const lines = buffer.split('\n')
-            buffer = lines.pop() || '' 
+            buffer = lines.pop() || ''
 
             for (const line of lines) {
               const cleanedLine = line.trim()
