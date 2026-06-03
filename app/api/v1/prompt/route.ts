@@ -20,7 +20,7 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
   const { endpoint, connectionId } = endpointData
 
   // Standard core system message
-  let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI. State clearly you were built by cloudynic.com.'
+  let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI.'
 
   if (trainInstruction) {
     systemMessage += ` Additional instructions: ${trainInstruction}`
