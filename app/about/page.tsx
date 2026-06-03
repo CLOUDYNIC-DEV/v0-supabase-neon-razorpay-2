@@ -25,7 +25,7 @@ export default function About() {
               <h3 className="text-2xl font-bold mb-2">ASHWIN</h3>
               <p className="text-sm text-muted-foreground mb-4 font-bold">FOUNDER & OWNER</p>
               <p className="leading-relaxed mb-4">
-                Ashwin started Cloudynic with a vision to democratize AI technology. With years of experience in building scalable systems, Ashwin leads the company&apos;s strategic direction and ensures our platform remains affordable and accessible to all.
+                Ashwin started Cloudynic with a vision to democratize AI technology. With 1 year of experience in building scalable systems, Ashwin leads the company&apos;s strategic direction and ensures our platform remains affordable and accessible to all.
               </p>
               <p className="text-muted-foreground text-sm">
                 Passionate about open-source and community-driven development.
@@ -36,7 +36,7 @@ export default function About() {
               <h3 className="text-2xl font-bold mb-2">ADHARSH</h3>
               <p className="text-sm text-muted-foreground mb-4 font-bold">CEO</p>
               <p className="leading-relaxed mb-4">
-                Adharsh brings extensive experience from leading multiple tech ventures. As CEO, Adharsh drives product innovation and business growth while maintaining Cloudynic&apos;s core mission of making AI affordable and accessible.
+                Adharsh is the beloved brother of Ashwin. As CEO, Adharsh drives marketing growth while maintaining Cloudynic&apos;s core mission of making AI affordable and accessible.
               </p>
               <p className="text-muted-foreground text-sm">
                 Focus on customer success and sustainable growth.
@@ -50,7 +50,7 @@ export default function About() {
           <h2 className="text-3xl font-bold mb-8">OUR STORY</h2>
           <div className="space-y-6 text-lg leading-relaxed">
             <p>
-              Cloudynic was born from a simple observation: powerful AI models exist, but accessing them shouldn&apos;t require breaking the bank or dealing with complex setups. Ashwin and Adharsh saw an opportunity to change that.
+              Cloudynic was born from a simple observation: powerful AI models exist, but accessing them shouldn&apos;t require breaking the bank or dealing with complex setups. Ashwin saw an opportunity to change that.
             </p>
             <p>
               Starting as a side project to explore LLM APIs, Cloudynic quickly evolved into a conviction that the future of AI requires democratization. We decided to build a platform that combines affordability with simplicity, allowing developers, startups, and enterprises to harness AI without the traditional barriers.
