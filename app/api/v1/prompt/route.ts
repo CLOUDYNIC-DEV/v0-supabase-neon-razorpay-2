@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateApiKey, checkRateLimit, logApiUsage, getLoadBalancer, getTrainingData } from '@/lib/api-utils'
 
-// Direct stream-based response that converts raw JSON SSE chunks into clean text SSE chunks
+// Direct plain-text stream response (no "data: " prefixes or double newlines)
 async function getAIResponse(prompt: string, trainInstruction?: string | null): Promise<{
   stream: ReadableStream | null
   error?: string
@@ -18,7 +18,7 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
   const { endpoint, connectionId } = endpointData
 
   let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI.'
-  
+
   if (trainInstruction) {
     systemMessage += ` Additional instructions: ${trainInstruction}`
   }
@@ -53,8 +53,7 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
     const encoder = new TextEncoder()
     let buffer = ''
 
-    // Create a clean stream that strips the noise and formats nicely as data: <clean_text>
-    const cleanStream = new ReadableStream({
+    const cleanTextStream = new ReadableStream({
       async start(controller) {
         try {
           while (true) {
@@ -63,16 +62,11 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
 
             buffer += decoder.decode(value, { stream: true })
             const lines = buffer.split('\n')
-            buffer = lines.pop() || '' 
+            buffer = lines.pop() || ''
 
             for (const line of lines) {
               const cleanedLine = line.trim()
-              if (!cleanedLine) continue
-              
-              if (cleanedLine === 'data: [DONE]') {
-                controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-                continue
-              }
+              if (!cleanedLine || cleanedLine === 'data: [DONE]') continue
 
               if (cleanedLine.startsWith('data: ')) {
                 try {
@@ -80,12 +74,12 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
                   const parsed = JSON.parse(rawJson)
                   const content = parsed.choices?.[0]?.delta?.content
 
-                  // Send ONLY the clean text wrapped in an elegant data packet
+                  // Stream ONLY the word directly, absolutely zero wrapper formats or linebreaks
                   if (content) {
-                    controller.enqueue(encoder.encode(`data: ${content}\n\n`))
+                    controller.enqueue(encoder.encode(content))
                   }
                 } catch (e) {
-                  // Ignore heartbeat lines or partial chunks
+                  // Skip partial parsing errors safely
                 }
               }
             }
@@ -93,17 +87,17 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
         } catch (err) {
           controller.error(err)
         } finally {
-          loadBalancer.releaseEndpoint(connectionId) // Critical memory fix
+          loadBalancer.releaseEndpoint(connectionId)
           controller.close()
         }
       },
       cancel() {
         reader.cancel()
-        loadBalancer.releaseEndpoint(connectionId) // Handle browser closure safely
+        loadBalancer.releaseEndpoint(connectionId)
       }
     })
 
-    return { stream: cleanStream }
+    return { stream: cleanTextStream }
   } catch (error) {
     console.error('API error:', error)
     loadBalancer.releaseEndpoint(connectionId)
@@ -146,6 +140,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Checked quota restrictions safely via database thresholds
     const canProceed = await checkRateLimit(userId, planTier)
     if (!canProceed) {
       return NextResponse.json({
@@ -163,7 +158,7 @@ export async function GET(req: NextRequest) {
 
     return new NextResponse(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
+        'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'X-Plan': planTier,
@@ -206,6 +201,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Checked quota restrictions safely via database thresholds
     const canProceed = await checkRateLimit(userId, planTier)
     if (!canProceed) {
       return NextResponse.json({
@@ -223,7 +219,7 @@ export async function POST(req: NextRequest) {
 
     return new NextResponse(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
+        'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'X-Plan': planTier,
