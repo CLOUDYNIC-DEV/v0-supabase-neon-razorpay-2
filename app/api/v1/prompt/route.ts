@@ -3,6 +3,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateApiKey, checkRateLimit, logApiUsage, getLoadBalancer, getTrainingData } from '@/lib/api-utils'
 
+// FORCE NEXT.JS TO TREAT THIS ROUTE AS A LIVE, NO-CACHE DYNAMIC STREAM
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs' 
+
 // Direct plain-text stream response (no "data: " prefixes or double newlines)
 async function getAIResponse(prompt: string, trainInstruction?: string | null): Promise<{
   stream: ReadableStream | null
@@ -18,7 +22,7 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
   const { endpoint, connectionId } = endpointData
 
   let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI.'
-
+  
   if (trainInstruction) {
     systemMessage += ` Additional instructions: ${trainInstruction}`
   }
@@ -62,7 +66,7 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
 
             buffer += decoder.decode(value, { stream: true })
             const lines = buffer.split('\n')
-            buffer = lines.pop() || ''
+            buffer = lines.pop() || '' 
 
             for (const line of lines) {
               const cleanedLine = line.trim()
@@ -159,7 +163,8 @@ export async function GET(req: NextRequest) {
     return new NextResponse(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform',
+        'Cache-Control': 'no-cache, no-transform', // Disables Next.js edge-network proxy buffering
+        'X-Accel-Buffering': 'no',                  // Forces Nginx/Vercel proxies to immediately flush text
         'Connection': 'keep-alive',
         'X-Plan': planTier,
       }
@@ -220,7 +225,8 @@ export async function POST(req: NextRequest) {
     return new NextResponse(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform',
+        'Cache-Control': 'no-cache, no-transform', // Disables Next.js edge-network proxy buffering
+        'X-Accel-Buffering': 'no',                  // Forces Nginx/Vercel proxies to immediately flush text
         'Connection': 'keep-alive',
         'X-Plan': planTier,
       }
