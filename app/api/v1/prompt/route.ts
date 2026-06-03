@@ -1,20 +1,25 @@
+// app/api/prompt/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { validateApiKey, checkRateLimit, logApiUsage, getLoadBalancer, getTrainingData } from '@/lib/api-utils'
 
 // Direct stream-based response
-async function getAIResponseStream(prompt: string, trainInstruction?: string | null): Promise<{
+async function getAIResponse(prompt: string, trainInstruction?: string | null): Promise<{
   stream: ReadableStream | null
   error?: string
 }> {
   const loadBalancer = getLoadBalancer()
   const endpointData = loadBalancer.getEndpoint()
 
+  // Handle case where all endpoints are at max capacity
   if (!endpointData) {
     return { stream: null, error: 'All servers are currently busy at max capacity. Please try again in a moment.' }
   }
 
+  // CRITICAL FIX: Destructure the string URL and connection ID from the object
   const { endpoint, connectionId } = endpointData
 
+  // Standard core system message
   let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI. State clearly you were built by cloudynic.com.'
 
   if (trainInstruction) {
@@ -22,6 +27,7 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
   }
 
   try {
+    // FIX: Pass the string 'endpoint' instead of the object
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -37,7 +43,7 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
 
     if (!response.ok) {
       console.error(`Endpoint error ${response.status}: ${endpoint}`)
-      loadBalancer.releaseEndpoint(connectionId)
+      loadBalancer.releaseEndpoint(connectionId) // Release slot on server error
       return { stream: null, error: `Error: ${response.status}` }
     }
 
@@ -46,6 +52,7 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
       return { stream: null, error: 'No response body' }
     }
 
+    // Intercept stream to release the load balancer slot when finished or aborted
     const originalStream = response.body
     const transformStream = new TransformStream({
       flush() {
@@ -59,7 +66,7 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
     return { stream: originalStream.pipeThrough(transformStream) }
   } catch (error) {
     console.error('API error:', error)
-    loadBalancer.releaseEndpoint(connectionId)
+    loadBalancer.releaseEndpoint(connectionId) // Release slot on crash
     return {
       stream: null,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -67,7 +74,7 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
   }
 }
 
-// GET /api/v1/prompt?prompt=hello&api=sk_xxx&train=custom_instructions
+// GET /api/prompt
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams
@@ -76,7 +83,7 @@ export async function GET(req: NextRequest) {
     const trainParam = searchParams.get('train')
 
     if (!prompt) {
-      return NextResponse.json({ error: 'Missing prompt parameter. Usage: /api/v1/prompt?prompt=hello' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing prompt parameter.' }, { status: 400 })
     }
 
     const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1'
@@ -102,14 +109,14 @@ export async function GET(req: NextRequest) {
     const canProceed = await checkRateLimit(userId, planTier)
     if (!canProceed) {
       return NextResponse.json({
-        error: 'Rate limit exceeded. Please wait or upgrade your plan.',
+        error: 'Rate limit exceeded.',
         limit: planTier === 'free' ? '1 request/minute' : planTier === 'pro' ? '30 requests/minute' : 'unlimited'
       }, { status: 429 })
     }
 
-    await logApiUsage(userId === `ip_${ip}` ? 'free' : userId, null, '/api/v1/prompt', prompt, ip)
+    await logApiUsage(userId === `ip_${ip}` ? 'free' : userId, null, '/api/prompt', prompt, ip)
 
-    const { stream, error } = await getAIResponseStream(prompt, trainInstruction)
+    const { stream, error } = await getAIResponse(prompt, trainInstruction)
     if (error || !stream) {
       return NextResponse.json({ error: error || 'Failed to get response' }, { status: 503 })
     }
@@ -128,7 +135,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/v1/prompt with JSON body { prompt, api, train }
+// POST /api/prompt
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -162,14 +169,14 @@ export async function POST(req: NextRequest) {
     const canProceed = await checkRateLimit(userId, planTier)
     if (!canProceed) {
       return NextResponse.json({
-        error: 'Rate limit exceeded. Please wait or upgrade your plan.',
+        error: 'Rate limit exceeded.',
         limit: planTier === 'free' ? '1 request/minute' : planTier === 'pro' ? '30 requests/minute' : 'unlimited'
       }, { status: 429 })
     }
 
-    await logApiUsage(userId === `ip_${ip}` ? 'free' : userId, null, '/api/v1/prompt', prompt, ip)
+    await logApiUsage(userId === `ip_${ip}` ? 'free' : userId, null, '/api/prompt', prompt, ip)
 
-    const { stream, error } = await getAIResponseStream(prompt, trainInstruction)
+    const { stream, error } = await getAIResponse(prompt, trainInstruction)
     if (error || !stream) {
       return NextResponse.json({ error: error || 'Failed to get response' }, { status: 503 })
     }
