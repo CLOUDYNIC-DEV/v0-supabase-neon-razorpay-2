@@ -5,7 +5,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 // In-memory fallback for demo limits
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
 const DEMO_LIMIT = 3
-const RESET_INTERVAL = 24 * 60 * 60 * 1000 
+const RESET_INTERVAL = 24 * 60 * 60 * 1000
 
 // Get Supabase admin client (optional - fallback to in-memory if not configured)
 function getSupabaseAdmin() {
@@ -37,6 +37,15 @@ function incrementDemoCount(ip: string): void {
 
 export async function POST(request: NextRequest) {
   const loadBalancer = getLoadBalancer()
+  const endpointData = loadBalancer.getEndpoint()
+
+  // 1. If load balancer is maxed out, reject request immediately
+  if (!endpointData) {
+    return NextResponse.json({ error: 'All servers are currently busy at max capacity. Please try again in a moment.' }, { status: 503 })
+  }
+
+  // 2. Safely destructure properties
+  const { endpoint, connectionId } = endpointData
 
   try {
     const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1'
@@ -44,19 +53,19 @@ export async function POST(request: NextRequest) {
 
     const currentCount = getDemoCount(ip)
     if (currentCount >= DEMO_LIMIT) {
+      loadBalancer.releaseEndpoint(connectionId) // Clean up slot before leaving!
       return NextResponse.json({ error: `Demo limit reached (${DEMO_LIMIT}/day). Sign up for unlimited access!` }, { status: 429 })
     }
 
     const { message } = await request.json()
     if (!message || typeof message !== 'string') {
+      loadBalancer.releaseEndpoint(connectionId) // Clean up slot before leaving!
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    const selectedEndpoint = loadBalancer.getEndpoint()
-
-    const response = await fetch(selectedEndpoint, {
+    const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -73,13 +82,15 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Endpoint error [${response.status}]: ${selectedEndpoint}`, errorText);
+      const errorText = await response.text()
+      console.error(`Endpoint error [${response.status}]: ${endpoint}`, errorText)
+      loadBalancer.releaseEndpoint(connectionId) // Clean up slot on failure!
       return NextResponse.json({ error: `Error: ${response.status}` }, { status: response.status })
     }
 
     if (!response.body) {
-      console.error('Empty response body:', selectedEndpoint)
+      console.error('Empty response body:', endpoint)
+      loadBalancer.releaseEndpoint(connectionId) // Clean up slot on failure!
       return NextResponse.json({ error: 'No response' }, { status: 500 })
     }
 
@@ -92,11 +103,22 @@ export async function POST(request: NextRequest) {
         endpoint: '/api/chat/demo',
         prompt: message.substring(0, 500),
         ip_address: ip,
-      }).then(() => {}).catch(() => {})
+      }).then(() => { }).catch(() => { })
     }
 
-    return new NextResponse(response.body, {
-      headers: { 
+    // Intercept stream endings to release the active connection tracking seamlessly
+    const originalStream = response.body
+    const transformStream = new TransformStream({
+      flush() {
+        loadBalancer.releaseEndpoint(connectionId)
+      },
+      cancel() {
+        loadBalancer.releaseEndpoint(connectionId)
+      }
+    })
+
+    return new NextResponse(originalStream.pipeThrough(transformStream), {
+      headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
@@ -106,6 +128,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Demo error:', error?.message || error)
+    loadBalancer.releaseEndpoint(connectionId) // Critical fallback cleanup
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
