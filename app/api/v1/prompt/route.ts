@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateApiKey, checkRateLimit, logApiUsage, getLoadBalancer, getTrainingData } from '@/lib/api-utils'
 
-// Direct stream-based response
+// Direct stream-based response that parses raw JSON chunks into clean text
 async function getAIResponse(prompt: string, trainInstruction?: string | null): Promise<{
   stream: ReadableStream | null
   error?: string
@@ -11,15 +11,12 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
   const loadBalancer = getLoadBalancer()
   const endpointData = loadBalancer.getEndpoint()
 
-  // Handle case where all endpoints are at max capacity
   if (!endpointData) {
     return { stream: null, error: 'All servers are currently busy at max capacity. Please try again in a moment.' }
   }
 
-  // CRITICAL FIX: Destructure the string URL and connection ID from the object
   const { endpoint, connectionId } = endpointData
 
-  // Standard core system message
   let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI.'
 
   if (trainInstruction) {
@@ -27,7 +24,6 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
   }
 
   try {
-    // FIX: Pass the string 'endpoint' instead of the object
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -43,7 +39,7 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
 
     if (!response.ok) {
       console.error(`Endpoint error ${response.status}: ${endpoint}`)
-      loadBalancer.releaseEndpoint(connectionId) // Release slot on server error
+      loadBalancer.releaseEndpoint(connectionId)
       return { stream: null, error: `Error: ${response.status}` }
     }
 
@@ -52,21 +48,61 @@ async function getAIResponse(prompt: string, trainInstruction?: string | null): 
       return { stream: null, error: 'No response body' }
     }
 
-    // Intercept stream to release the load balancer slot when finished or aborted
-    const originalStream = response.body
-    const transformStream = new TransformStream({
-      flush() {
-        loadBalancer.releaseEndpoint(connectionId)
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    const encoder = new TextEncoder()
+    let buffer = ''
+
+    // Create a brand new clean stream that parses out the raw JSON chunk formats
+    const cleanStream = new ReadableStream({
+      async start(controller) {
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || '' // Keep unfinished line in buffer
+
+            for (const line of lines) {
+              const cleanedLine = line.trim()
+              if (!cleanedLine) continue
+              if (cleanedLine === 'data: [DONE]') continue
+
+              if (cleanedLine.startsWith('data: ')) {
+                try {
+                  const rawJson = cleanedLine.slice(6)
+                  const parsed = JSON.parse(rawJson)
+                  const content = parsed.choices?.[0]?.delta?.content
+
+                  // Only push if there's actual text content to send
+                  if (content) {
+                    controller.enqueue(encoder.encode(content))
+                  }
+                } catch (e) {
+                  // Ignore parse errors on malformed/heartbeat lines
+                }
+              }
+            }
+          }
+        } catch (err) {
+          controller.error(err)
+        } finally {
+          loadBalancer.releaseEndpoint(connectionId) // Safely release when stream concludes
+          controller.close()
+        }
       },
       cancel() {
-        loadBalancer.releaseEndpoint(connectionId)
+        reader.cancel()
+        loadBalancer.releaseEndpoint(connectionId) // Safely release on early tab close
       }
     })
 
-    return { stream: originalStream.pipeThrough(transformStream) }
+    return { stream: cleanStream }
   } catch (error) {
     console.error('API error:', error)
-    loadBalancer.releaseEndpoint(connectionId) // Release slot on crash
+    loadBalancer.releaseEndpoint(connectionId)
     return {
       stream: null,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -106,10 +142,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Checked quota restrictions safely via database thresholds
     const canProceed = await checkRateLimit(userId, planTier)
     if (!canProceed) {
       return NextResponse.json({
-        error: 'Rate limit exceeded.',
+        error: 'Rate limit exceeded. Please wait or upgrade your plan.',
         limit: planTier === 'free' ? '1 request/minute' : planTier === 'pro' ? '30 requests/minute' : 'unlimited'
       }, { status: 429 })
     }
@@ -123,7 +160,7 @@ export async function GET(req: NextRequest) {
 
     return new NextResponse(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
+        'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'X-Plan': planTier,
@@ -166,10 +203,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Checked quota restrictions safely via database thresholds
     const canProceed = await checkRateLimit(userId, planTier)
     if (!canProceed) {
       return NextResponse.json({
-        error: 'Rate limit exceeded.',
+        error: 'Rate limit exceeded. Please wait or upgrade your plan.',
         limit: planTier === 'free' ? '1 request/minute' : planTier === 'pro' ? '30 requests/minute' : 'unlimited'
       }, { status: 429 })
     }
@@ -183,7 +221,7 @@ export async function POST(req: NextRequest) {
 
     return new NextResponse(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
+        'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'X-Plan': planTier,
