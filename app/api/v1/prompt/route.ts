@@ -10,7 +10,7 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
   const selectedEndpoint = loadBalancer.getEndpoint()
 
   // Standard core system message
-  let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI. State clearly you were built by cloudynic.com.'
+  let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com.'
   
   if (trainInstruction) {
     systemMessage += ` ${trainInstruction}`
