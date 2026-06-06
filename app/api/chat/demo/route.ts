@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: 'You are Cloudynic AI, built and trained by cloudynic.com. No Meta, Meta AI, or OpenAI connection. State you were built by cloudynic.com.',
+            content: 'You are Cloudynic AI, built and trained by cloudynic.com.',
           },
           { role: 'user', content: message },
         ],
