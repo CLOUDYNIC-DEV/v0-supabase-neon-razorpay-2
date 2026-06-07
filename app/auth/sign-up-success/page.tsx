@@ -14,7 +14,7 @@ export default function SignUpSuccess() {
 
         <div className="space-y-4 mb-6">
           <p className="text-sm leading-relaxed">
-            We&apos;ve sent a confirmation email to your address. Click the Supabase Auth in the email app to verify your account and get started with Cloudynic AI.
+            We&apos;ve sent a confirmation email to your address. Just click on the link on the Supabase Auth mail in the email app to verify your account and get started with Cloudynic AI.
           </p>
         </div>
 
