@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         ],
         stream: true,
         // Drastically cuts down generation to save tokens and maintain blazing fast latency
-        max_completion_tokens: 150, 
+        max_completion_tokens: 500, 
         temperature: 0.5,
       }),
     })
