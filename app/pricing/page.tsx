@@ -20,7 +20,7 @@ export default function Pricing() {
           {/* Free Plan */}
           <div className="border-4 border-foreground p-4 sm:p-6 md:p-8 flex flex-col">
             <h2 className="text-xl sm:text-2xl font-bold mb-2">FREE</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">For testing and small projects</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">For just testing</p>
 
             <div className="mb-4 sm:mb-6">
               <span className="text-3xl sm:text-4xl font-bold">$0</span>
@@ -65,7 +65,7 @@ export default function Pricing() {
           {/* Pro Plan */}
           <div className="border-4 border-foreground p-4 sm:p-6 md:p-8 flex flex-col bg-card ring-2 ring-foreground ring-offset-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">PRO</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">For growing companies</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">For low range companies</p>
 
             <div className="mb-4 sm:mb-6">
               <span className="text-3xl sm:text-4xl font-bold">$1.99</span>
@@ -109,7 +109,7 @@ export default function Pricing() {
               POPULAR
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">PRO MAX</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">For large scale</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">For growing companies</p>
 
             <div className="mb-4 sm:mb-6">
               <span className="text-3xl sm:text-4xl font-bold">$9.99</span>
@@ -159,9 +159,9 @@ export default function Pricing() {
               </p>
             </div>
             <div className="border-2 border-foreground p-4 sm:p-6">
-              <h3 className="font-bold mb-2 text-sm sm:text-base">Is there a setup fee?</h3>
+              <h3 className="font-bold mb-2 text-sm sm:text-base">What to do if I need support</h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                No hidden fees. You only pay what&apos;s listed.
+                No problem. Just contact hello@cloudynic.com (Only for Pro and Pro max plans.)
               </p>
             </div>
             <div className="border-2 border-foreground p-4 sm:p-6">
