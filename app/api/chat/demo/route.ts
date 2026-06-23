@@ -5,7 +5,7 @@ export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 // Mistral API Configurations
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || 'rQPiPMqnCrndUmbgjYWRd3ncypR5SJXS'
+const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || 'rQPiPMqnCrndUmbgjYWRd3ncypR5SJXSa'
 const MISTRAL_MODEL = 'ministral-3b-2512' // Switch to 'ministral-3b-latest' if using the on-device tier
 const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions'
 
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
-      return NextResponse.json({ error: `Mistral API Error: ${response.status}` }, { status: response.status })
+      return NextResponse.json({ error: `Error: ${response.status}` }, { status: response.status })
     }
 
     if (!response.body) {
