@@ -1,26 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// ⚡ CRITICAL FOR SPEED: Force Edge Runtime to minimize cold starts and function overhead
+// ⚡ FORCE EDGE RUNTIME: Zero cold starts, maximum execution efficiency
 export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
-// Configuration constants
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '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'
-const GROQ_MODEL = 'llama-3.1-8b-instant'
-const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
+// Mistral API Configurations
+const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || 'rQPiPMqnCrndUmbgjYWRd3ncypR5SJXS'
+const MISTRAL_MODEL = 'ministral-3b-2512' // Switch to 'ministral-3b-latest' if using the on-device tier
+const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions'
 
-// 1. Daily global demo limits per IP
+// 1. Daily User Demo Rate Limits (In-memory storage for Edge)
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
-const DEMO_LIMIT = 3
-const RESET_INTERVAL = 86400000 // 24 * 60 * 60 * 1000 
+const DEMO_LIMIT = 10000 // Your massive daily limit per user/IP
+const RESET_INTERVAL = 86400000 // 24 Hours in milliseconds
 
-// 2. Strict RPM Rate Limiter (30 requests per minute max across the server)
+// 2. Strict RPM Rate Limiter (Protects your account from hitting Mistral's 30 RPM ceiling)
 let globalRequestTimestamps: number[] = []
 const MAX_RPM = 30
 const ONE_MINUTE_MS = 60000
 
 function checkAndTrackRateLimit(now: number): boolean {
-  // Clean up timestamps older than 1 minute
+  // Clear out request timestamps older than 60 seconds
   globalRequestTimestamps = globalRequestTimestamps.filter(timestamp => now - timestamp < ONE_MINUTE_MS)
   
   if (globalRequestTimestamps.length >= MAX_RPM) {
@@ -49,36 +49,36 @@ function incrementDemoCount(ip: string, now: number): void {
 export async function POST(request: NextRequest) {
   const now = Date.now()
 
-  // 1. Instant Global RPM Check
+  // 1. Instant Global Account Shield (Don't break Mistral's 30 RPM limit)
   if (!checkAndTrackRateLimit(now)) {
-    return NextResponse.json({ error: 'server is busy atmax load' }, { status: 503 })
+    return NextResponse.json({ error: 'Server is at maximum capacity. Try again in a few seconds.' }, { status: 429 })
   }
 
   try {
-    // 2. Fast IP extraction
+    // 2. Fast IP extraction for tracking
     const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1'
     const ip = clientIp.split(',')[0].trim()
 
     const currentCount = getDemoCount(ip, now)
     if (currentCount >= DEMO_LIMIT) {
-      return NextResponse.json({ error: `Demo limit reached (${DEMO_LIMIT}/day).` }, { status: 429 })
+      return NextResponse.json({ error: `Daily limit reached (${DEMO_LIMIT}/day).` }, { status: 429 })
     }
 
-    // 3. Extract JSON payload quickly
+    // 3. Extract request payload
     const { message } = await request.json()
     if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid message format' }, { status: 400 })
     }
 
-    // 4. Fire fetch immediately (Edge environment reuses TCP connections automatically)
-    const response = await fetch(GROQ_ENDPOINT, {
+    // 4. Hit Mistral API directly with Streaming Enabled
+    const response = await fetch(MISTRAL_ENDPOINT, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Authorization': `Bearer ${MISTRAL_API_KEY}`,
       },
       body: JSON.stringify({
-        model: GROQ_MODEL,
+        model: MISTRAL_MODEL,
         messages: [
           {
             role: 'system',
@@ -87,23 +87,23 @@ export async function POST(request: NextRequest) {
           { role: 'user', content: message },
         ],
         stream: true,
-        // Dropping max tokens even lower reduces internal processing overhead
-        max_completion_tokens: 150, 
-        temperature: 0.2, // Lower temperature speeds up token selection slightly
+        max_tokens: 150, // Limits maximum completion cost per request
+        temperature: 0.2, // Fast, deterministic outputs
       }),
     })
 
     if (!response.ok) {
-      return NextResponse.json({ error: `Error: ${response.status}` }, { status: response.status })
+      return NextResponse.json({ error: `Mistral API Error: ${response.status}` }, { status: response.status })
     }
 
     if (!response.body) {
-      return NextResponse.json({ error: 'No response' }, { status: 500 })
+      return NextResponse.json({ error: 'Empty payload received' }, { status: 500 })
     }
 
+    // 5. Commit token allocation count to memory
     incrementDemoCount(ip, now)
 
-    // 5. Instantly pipe the raw stream directly to the client without decoding/re-encoding
+    // 6. Direct Stream Pipe (Bypasses intermediate decoding bottlenecks)
     return new NextResponse(response.body, {
       headers: { 
         'Content-Type': 'text/event-stream',
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('[Groq] Demo error:', error?.message || error)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    console.error('[Mistral] Execution Error:', error?.message || error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
