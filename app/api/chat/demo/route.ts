@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: 'You are Cloudynic AI. Be ultra-concise. Answer in 1 sentence or less.',
+            content: 'You are strictly named as Cloudynic AI. No mistral AI. Be ultra-concise. Answer in 1 sentence or less.',
           },
           { role: 'user', content: message },
         ],
