@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateApiKey, checkRateLimit, logApiUsage, getLoadBalancer } from '@/lib/api-utils'
+import { headers } from 'next/headers'
+import { checkRateLimit, getLoadBalancer } from '@/lib/api-utils'
+import { auth } from '@/lib/auth'
 
 // Stream-based response with simple round-robin
 async function getAIResponseStream(prompt: string, trainInstruction?: string | null): Promise<{
@@ -50,27 +52,23 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
 }
 
 export async function GET(req: NextRequest) {
+  const startTime = Date.now()
   try {
     const searchParams = req.nextUrl.searchParams
     const prompt = searchParams.get('prompt')
-    const apiKey = searchParams.get('key')
     const train = searchParams.get('train')
 
     if (!prompt) {
       return NextResponse.json({ error: 'missing prompt' }, { status: 400 })
     }
 
-    let userId = 'free'
-    if (apiKey) {
-      const validation = await validateApiKey(apiKey)
-      if (!validation) {
-        return NextResponse.json({ error: 'invalid key' }, { status: 401 })
-      }
-      userId = validation.userId
-    }
+    // Get session from Better Auth
+    const session = await auth.api.getSession({ headers: await headers() })
+    const userId = session?.user?.id || 'anonymous'
 
     // Check rate limit
-    const canProceed = await checkRateLimit(userId, apiKey ? 'pro' : 'free')
+    const planTier = session?.user ? 'pro' : 'free'
+    const canProceed = await checkRateLimit(userId, planTier)
     if (!canProceed) {
       return NextResponse.json({ error: 'rate limit exceeded' }, { status: 429 })
     }
@@ -78,6 +76,14 @@ export async function GET(req: NextRequest) {
     const { stream, error } = await getAIResponseStream(prompt, train)
     if (error || !stream) {
       return NextResponse.json({ error: error || 'Failed to get response' }, { status: 503 })
+    }
+
+    // Log usage asynchronously
+    if (session?.user?.id) {
+      const responseTime = Date.now() - startTime
+      import('@/app/actions/auth-actions').then(mod => {
+        mod.logApiUsage('/api/v1/prompt', 'GET', 200, responseTime).catch(e => console.error('[v0] Logging error:', e))
+      })
     }
 
     return new NextResponse(stream, {
@@ -94,24 +100,21 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now()
   try {
-    const { prompt, key, train } = await req.json()
+    const { prompt, train } = await req.json()
 
     if (!prompt) {
       return NextResponse.json({ error: 'missing prompt' }, { status: 400 })
     }
 
-    let userId = 'free'
-    if (key) {
-      const validation = await validateApiKey(key)
-      if (!validation) {
-        return NextResponse.json({ error: 'invalid key' }, { status: 401 })
-      }
-      userId = validation.userId
-    }
+    // Get session from Better Auth
+    const session = await auth.api.getSession({ headers: await headers() })
+    const userId = session?.user?.id || 'anonymous'
 
     // Check rate limit
-    const canProceed = await checkRateLimit(userId, key ? 'pro' : 'free')
+    const planTier = session?.user ? 'pro' : 'free'
+    const canProceed = await checkRateLimit(userId, planTier)
     if (!canProceed) {
       return NextResponse.json({ error: 'rate limit exceeded' }, { status: 429 })
     }
@@ -119,6 +122,14 @@ export async function POST(req: NextRequest) {
     const { stream, error } = await getAIResponseStream(prompt, train)
     if (error || !stream) {
       return NextResponse.json({ error: error || 'Failed to get response' }, { status: 503 })
+    }
+
+    // Log usage asynchronously
+    if (session?.user?.id) {
+      const responseTime = Date.now() - startTime
+      import('@/app/actions/auth-actions').then(mod => {
+        mod.logApiUsage('/api/v1/prompt', 'POST', 200, responseTime).catch(e => console.error('[v0] Logging error:', e))
+      })
     }
 
     return new NextResponse(stream, {
