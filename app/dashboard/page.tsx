@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth'
 import { getUserProfile, getUser, getApiUsageStats, signOutUser } from '@/app/actions/auth-actions'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Dashboard - Cloudynic AI',
   description: 'Your Cloudynic AI dashboard',

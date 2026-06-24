@@ -3,6 +3,8 @@ import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { AuthForm } from '@/components/auth-form'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Sign In - Cloudynic AI',
   description: 'Sign in to your Cloudynic AI account',

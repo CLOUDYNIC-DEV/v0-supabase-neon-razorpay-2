@@ -1,7 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { user, userProfile, apiUsage } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
@@ -16,6 +16,7 @@ async function getUserId() {
 
 export async function getUserProfile() {
   const userId = await getUserId()
+  const db = getDb()
   const profile = await db.query.userProfile.findFirst({
     where: eq(userProfile.userId, userId),
   })
@@ -24,6 +25,7 @@ export async function getUserProfile() {
 
 export async function getUser() {
   const userId = await getUserId()
+  const db = getDb()
   const userRecord = await db.query.user.findFirst({
     where: eq(user.id, userId),
   })
@@ -39,6 +41,7 @@ export async function logApiUsage(
 ) {
   try {
     const userId = await getUserId()
+    const db = getDb()
     await db.insert(apiUsage).values({
       id: nanoid(),
       userId,
@@ -55,6 +58,7 @@ export async function logApiUsage(
 
 export async function getApiUsageStats() {
   const userId = await getUserId()
+  const db = getDb()
   const stats = await db.query.apiUsage.findMany({
     where: eq(apiUsage.userId, userId),
   })

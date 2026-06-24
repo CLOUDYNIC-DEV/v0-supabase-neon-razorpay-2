@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { headers } from 'next/headers'
 import { getLoadBalancer } from '@/lib/api-utils'
-import { auth } from '@/lib/auth'
 
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
 const DEMO_LIMIT = 3
@@ -40,14 +38,6 @@ export async function POST(request: NextRequest) {
 
     const loadBalancer = getLoadBalancer()
     const selectedEndpoint = loadBalancer.getEndpoint()
-
-    // Log usage if authenticated
-    const session = await auth.api.getSession({ headers: await headers() })
-    if (session?.user?.id) {
-      import('@/app/actions/auth-actions').then(mod => {
-        mod.logApiUsage('/api/chat/demo', 'POST', 200, 0).catch(e => console.error('[v0]', e))
-      })
-    }
 
     const response = await fetch(selectedEndpoint, {
       method: 'POST',
