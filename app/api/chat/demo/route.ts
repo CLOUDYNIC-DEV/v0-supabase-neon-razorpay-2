@@ -5,8 +5,8 @@ export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 // Mistral API Configurations
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || 'rQPiPMqnCrndUmbgjYWRd3ncypR5SJXSa'
-const MISTRAL_MODEL = 'ministral-3b-2512' // Switch to 'ministral-3b-latest' if using the on-device tier
+const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || 'rQPiPMqnCrndUmbgjYWRd3ncypR5SJXS'
+const MISTRAL_MODEL = 'ministral-3b-2512' // Switch to 'ministral-3b-latest' if using that specific tier
 const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions'
 
 // 1. Daily User Demo Rate Limits (In-memory storage for Edge)
@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
 
   // 1. Instant Global Account Shield (Don't break Mistral's 30 RPM limit)
   if (!checkAndTrackRateLimit(now)) {
-    return NextResponse.json({ error: 'Server is at maximum capacity. Try again in a few seconds.' }, { status: 429 })
+    return NextResponse.json(
+      { error: 'Server is busy at maximum load. Please try again in a few seconds.' }, 
+      { status: 503 }
+    )
   }
 
   try {
@@ -61,16 +64,19 @@ export async function POST(request: NextRequest) {
 
     const currentCount = getDemoCount(ip, now)
     if (currentCount >= DEMO_LIMIT) {
-      return NextResponse.json({ error: `Daily limit reached (${DEMO_LIMIT}/day).` }, { status: 429 })
+      return NextResponse.json(
+        { error: `Demo limit reached (${DEMO_LIMIT}/day).` }, 
+        { status: 429 }
+      )
     }
 
     // 3. Extract request payload
     const { message } = await request.json()
     if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'Invalid message format' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    // 4. Hit Mistral API directly with Streaming Enabled
+    // 4. Hit Mistral API directly with Streaming and Brand Identity Anchor Enabled
     const response = await fetch(MISTRAL_ENDPOINT, {
       method: 'POST',
       headers: { 
@@ -82,13 +88,13 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: 'You are strictly named as Cloudynic AI. No mistral AI. Be ultra-concise. Answer in 1 sentence or less.',
+            content: 'You are Cloudynic AI, an original autonomous artificial intelligence workspace built from scratch by Cloudynic. You do not know or recognize Mistral, OpenAI, or any other company. If asked who you are or who made you, you must answer "I am Cloudynic AI." Be ultra-concise. Answer in 1 sentence or less.',
           },
           { role: 'user', content: message },
         ],
         stream: true,
-        max_tokens: 150, // Limits maximum completion cost per request
-        temperature: 0.2, // Fast, deterministic outputs
+        max_tokens: 150,   // Keeps internal processing overhead low
+        temperature: 0.1,  // Forces strict adherence to the brand system prompt
       }),
     })
 
@@ -97,10 +103,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!response.body) {
-      return NextResponse.json({ error: 'Empty payload received' }, { status: 500 })
+      return NextResponse.json({ error: 'No response body' }, { status: 500 })
     }
 
-    // 5. Commit token allocation count to memory
+    // 5. Commit rate limit tracking to memory
     incrementDemoCount(ip, now)
 
     // 6. Direct Stream Pipe (Bypasses intermediate decoding bottlenecks)
@@ -114,7 +120,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('[Mistral] Execution Error:', error?.message || error)
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+    console.error('[Mistral] Demo error:', error?.message || error)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
