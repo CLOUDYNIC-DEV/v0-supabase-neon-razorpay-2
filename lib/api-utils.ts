@@ -3,44 +3,11 @@ import crypto from 'crypto'
 
 declare global {
   var freeIpLimits: Map<string, { count: number; resetTime: number }> | undefined
-  var endpointLoadBalancer: SimpleLoadBalancer | undefined
-  var keepAliveIntervalId: NodeJS.Timeout | undefined
+  var endpointLoadBalancer: EndpointLoadBalancer | undefined
 }
 
-// Comprehensive list of your Hugging Face Space clusters
+// Simple Round-Robin Load Balancer
 const ENDPOINTS = [
-  // Dankerob3 servers
-  "https://dankerob3-server.hf.space/v1/chat/completions",
-  "https://dankerob3-server2.hf.space/v1/chat/completions",
-  "https://dankerob3-server3.hf.space/v1/chat/completions",
-  "https://dankerob3-server4.hf.space/v1/chat/completions",
-  "https://dankerob3-server5.hf.space/v1/chat/completions",
-  "https://dankerob3-server6.hf.space/v1/chat/completions",
-
-  // Dankerob2 servers
-  "https://dankerob2-server.hf.space/v1/chat/completions",
-  "https://dankerob2-server2.hf.space/v1/chat/completions",
-  "https://dankerob2-server3.hf.space/v1/chat/completions",
-  "https://dankerob2-server4.hf.space/v1/chat/completions",
-  "https://dankerob2-server5.hf.space/v1/chat/completions",
-  "https://dankerob2-server6.hf.space/v1/chat/completions",
-
-  // Dankerob1 servers
-  "https://dankerob1-server.hf.space/v1/chat/completions",
-  "https://dankerob1-server2.hf.space/v1/chat/completions",
-  "https://dankerob1-server3.hf.space/v1/chat/completions",
-  "https://dankerob1-server4.hf.space/v1/chat/completions",
-  "https://dankerob1-server5.hf.space/v1/chat/completions",
-  "https://dankerob1-server6.hf.space/v1/chat/completions",
-
-  // Hellomoto11 servers
-  "https://hellomoto11-server.hf.space/v1/chat/completions",
-  "https://hellomoto11-server2.hf.space/v1/chat/completions",
-  "https://hellomoto11-server3.hf.space/v1/chat/completions",
-  "https://hellomoto11-server4.hf.space/v1/chat/completions",
-  "https://hellomoto11-server5.hf.space/v1/chat/completions",
-  "https://hellomoto11-server6.hf.space/v1/chat/completions",
-
   // DarkMind Forever servers
   "https://darkmindforever-server.hf.space/v1/chat/completions",
   "https://darkmindforever-server2.hf.space/v1/chat/completions",
@@ -48,7 +15,6 @@ const ENDPOINTS = [
   "https://darkmindforever-server4.hf.space/v1/chat/completions",
   "https://darkmindforever-server5.hf.space/v1/chat/completions",
   "https://darkmindforever-server6.hf.space/v1/chat/completions",
-
   // ResearchQ servers
   "http://researchq-server.hf.space/v1/chat/completions",
   "http://researchq-server1.hf.space/v1/chat/completions",
@@ -61,10 +27,6 @@ const ENDPOINTS = [
 class SimpleLoadBalancer {
   private currentIndex = 0
   private requestCount = 0
-
-  constructor() {
-    this.startKeepAliveEngine()
-  }
 
   getEndpoint(): string {
     const endpoint = ENDPOINTS[this.currentIndex]
@@ -86,34 +48,6 @@ class SimpleLoadBalancer {
       }))
     }
   }
-
-  // Iterates over all endpoints and fires a lightweight GET to wake them up
-  private startKeepAliveEngine() {
-    if (global.keepAliveIntervalId) return
-
-    const pokeSpaces = async () => {
-      console.log(`[Keep-Alive] Pinging all ${ENDPOINTS.length} spaces to prevent sleep mode...`)
-      
-      const promises = ENDPOINTS.map(async (endpoint) => {
-        // Strip down the path to just the root domain for a fast homepage touch
-        const baseUrl = endpoint.split('/v1')[0]
-        try {
-          const res = await fetch(baseUrl, { method: 'GET', signal: AbortSignal.timeout(10000) })
-          console.log(`[Keep-Alive] Poked ${baseUrl.split('//')[1]} -> Status: ${res.status}`)
-        } catch (err: any) {
-          console.error(`[Keep-Alive] Failed to poke ${baseUrl.split('//')[1]}: ${err.message}`)
-        }
-      })
-
-      await Promise.allSettled(promises)
-    }
-
-    // Run immediately on boot
-    pokeSpaces()
-
-    // Run every 25 minutes (just under the 30-minute threshold)
-    global.keepAliveIntervalId = setInterval(pokeSpaces, 25 * 60 * 1000)
-  }
 }
 
 export function getLoadBalancer(): SimpleLoadBalancer {
@@ -124,6 +58,7 @@ export function getLoadBalancer(): SimpleLoadBalancer {
 }
 
 export async function generateApiKey(): Promise<string> {
+  // Generate a 32-character API key
   return `sk_${crypto.randomBytes(24).toString('hex')}`
 }
 
@@ -143,6 +78,7 @@ export async function validateApiKey(
     return null
   }
 
+  // Update last_used_at
   await supabase
     .from('api_keys')
     .update({ last_used_at: new Date().toISOString() })
@@ -158,7 +94,9 @@ export async function checkRateLimit(
   userId: string,
   planTier: string,
 ): Promise<boolean> {
+  // For free tier (IP-based), use in-memory tracking
   if (planTier === 'free' && userId.startsWith('ip_')) {
+    // Check in-memory free tier limit (1 per minute per IP)
     if (!global.freeIpLimits) {
       global.freeIpLimits = new Map<string, { count: number; resetTime: number }>()
     }
@@ -167,6 +105,7 @@ export async function checkRateLimit(
     const record = global.freeIpLimits.get(userId)
     
     if (!record || now > record.resetTime) {
+      // Reset counter
       global.freeIpLimits.set(userId, { count: 1, resetTime: now + 60000 })
       return true
     }
@@ -179,8 +118,11 @@ export async function checkRateLimit(
     return true
   }
 
+  // For authenticated users (pro/pro_max), check database
   try {
     const supabase = await createClient()
+
+    // Get usage in the last minute
     const oneMinuteAgo = new Date(Date.now() - 60000).toISOString()
 
     const { count, error } = await supabase
@@ -189,17 +131,18 @@ export async function checkRateLimit(
       .eq('user_id', userId)
       .gte('created_at', oneMinuteAgo)
 
-    if (error) return true
+    if (error) return true // Allow if database error
 
+    // Rate limits per tier
     const limits: Record<string, number> = {
       pro: 30,
-      pro_max: 999,
+      pro_max: 999999, // Effectively unlimited
     }
 
     return (count || 0) < (limits[planTier] || 30)
   } catch (error) {
     console.error('Rate limit check error:', error)
-    return true
+    return true // Allow if error occurs
   }
 }
 

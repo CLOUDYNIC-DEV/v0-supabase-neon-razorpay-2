@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { checkRateLimit, getLoadBalancer } from '@/lib/api-utils'
+import { validateApiKey, checkRateLimit, logApiUsage, getLoadBalancer } from '@/lib/api-utils'
 
 // Stream-based response with simple round-robin
 async function getAIResponseStream(prompt: string, trainInstruction?: string | null): Promise<{
@@ -10,7 +10,7 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
   const selectedEndpoint = loadBalancer.getEndpoint()
 
   // Standard core system message
-  let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com.'
+  let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI. State clearly you were built by cloudynic.com.'
   
   if (trainInstruction) {
     systemMessage += ` ${trainInstruction}`
@@ -53,15 +53,24 @@ export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams
     const prompt = searchParams.get('prompt')
+    const apiKey = searchParams.get('key')
     const train = searchParams.get('train')
 
     if (!prompt) {
       return NextResponse.json({ error: 'missing prompt' }, { status: 400 })
     }
 
-    // Basic rate limit check (IP-based)
-    const ip = req.headers.get('x-forwarded-for') || 'unknown'
-    const canProceed = await checkRateLimit(ip, 'free')
+    let userId = 'free'
+    if (apiKey) {
+      const validation = await validateApiKey(apiKey)
+      if (!validation) {
+        return NextResponse.json({ error: 'invalid key' }, { status: 401 })
+      }
+      userId = validation.userId
+    }
+
+    // Check rate limit
+    const canProceed = await checkRateLimit(userId, apiKey ? 'pro' : 'free')
     if (!canProceed) {
       return NextResponse.json({ error: 'rate limit exceeded' }, { status: 429 })
     }
@@ -86,15 +95,23 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, train } = await req.json()
+    const { prompt, key, train } = await req.json()
 
     if (!prompt) {
       return NextResponse.json({ error: 'missing prompt' }, { status: 400 })
     }
 
-    // Basic rate limit check (IP-based)
-    const ip = req.headers.get('x-forwarded-for') || 'unknown'
-    const canProceed = await checkRateLimit(ip, 'free')
+    let userId = 'free'
+    if (key) {
+      const validation = await validateApiKey(key)
+      if (!validation) {
+        return NextResponse.json({ error: 'invalid key' }, { status: 401 })
+      }
+      userId = validation.userId
+    }
+
+    // Check rate limit
+    const canProceed = await checkRateLimit(userId, key ? 'pro' : 'free')
     if (!canProceed) {
       return NextResponse.json({ error: 'rate limit exceeded' }, { status: 429 })
     }

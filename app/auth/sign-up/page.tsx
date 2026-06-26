@@ -34,17 +34,17 @@ export default function SignUp() {
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        // options/emailRedirectTo is no longer strictly necessary 
-        // since confirmation emails won't be sent.
+        options: {
+          emailRedirectTo:
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
+            `${window.location.origin}/auth/callback`,
+        },
       })
 
       if (signUpError) {
         setError(signUpError.message)
       } else {
-        // Redirect directly to your app dashboard or home screen 
-        // since they are automatically signed in now
-        router.push('/auth/login') 
-        router.refresh()
+        router.push('/auth/sign-up-success')
       }
     } catch (err) {
       setError('An error occurred during sign up')
