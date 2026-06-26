@@ -1,12 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getLoadBalancer } from '@/lib/api-utils'
 
+// ⚡ FORCE EDGE RUNTIME: Zero cold starts, maximum execution efficiency
+export const runtime = 'edge'
+export const dynamic = 'force-dynamic'
+
+// Mistral API Configurations
+const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || 'rQPiPMqnCrndUmbgjYWRd3ncypR5SJXS'
+const MISTRAL_MODEL = 'ministral-3b-2512' // Switch to 'ministral-3b-latest' if using that specific tier
+const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions'
+
+// 1. Daily User Demo Rate Limits (In-memory storage for Edge)
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
-const DEMO_LIMIT = 3
-const RESET_INTERVAL = 24 * 60 * 60 * 1000
+const DEMO_LIMIT = 10000 // Your massive daily limit per user/IP
+const RESET_INTERVAL = 86400000 // 24 Hours in milliseconds
 
-function getDemoCount(ip: string): number {
-  const now = Date.now()
+// 2. Strict RPM Rate Limiter (Protects your account from hitting Mistral's 30 RPM ceiling)
+let globalRequestTimestamps: number[] = []
+const MAX_RPM = 30
+const ONE_MINUTE_MS = 60000
+
+function checkAndTrackRateLimit(now: number): boolean {
+  // Clear out request timestamps older than 60 seconds
+  globalRequestTimestamps = globalRequestTimestamps.filter(timestamp => now - timestamp < ONE_MINUTE_MS)
+  
+  if (globalRequestTimestamps.length >= MAX_RPM) {
+    return false 
+  }
+  
+  globalRequestTimestamps.push(now)
+  return true
+}
+
+function getDemoCount(ip: string, now: number): number {
   const record = demoLimits.get(ip)
   if (!record || now > record.resetTime) {
     demoLimits.set(ip, { count: 0, resetTime: now + RESET_INTERVAL })
@@ -15,43 +40,61 @@ function getDemoCount(ip: string): number {
   return record.count
 }
 
-function incrementDemoCount(ip: string): void {
-  const record = demoLimits.get(ip) || { count: 0, resetTime: Date.now() + RESET_INTERVAL }
+function incrementDemoCount(ip: string, now: number): void {
+  const record = demoLimits.get(ip) || { count: 0, resetTime: now + RESET_INTERVAL }
   record.count += 1
   demoLimits.set(ip, record)
 }
 
 export async function POST(request: NextRequest) {
+  const now = Date.now()
+
+  // 1. Instant Global Account Shield (Don't break Mistral's 30 RPM limit)
+  if (!checkAndTrackRateLimit(now)) {
+    return NextResponse.json(
+      { error: 'Server is busy at maximum load. Please try again in a few seconds.' }, 
+      { status: 503 }
+    )
+  }
+
   try {
+    // 2. Fast IP extraction for tracking
     const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1'
     const ip = clientIp.split(',')[0].trim()
 
-    const currentCount = getDemoCount(ip)
+    const currentCount = getDemoCount(ip, now)
     if (currentCount >= DEMO_LIMIT) {
-      return NextResponse.json({ error: `Demo limit (${DEMO_LIMIT}/day)` }, { status: 429 })
+      return NextResponse.json(
+        { error: `Demo limit reached (${DEMO_LIMIT}/day).` }, 
+        { status: 429 }
+      )
     }
 
+    // 3. Extract request payload
     const { message } = await request.json()
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    const loadBalancer = getLoadBalancer()
-    const selectedEndpoint = loadBalancer.getEndpoint()
-
-    const response = await fetch(selectedEndpoint, {
+    // 4. Hit Mistral API directly with Streaming and Brand Identity Anchor Enabled
+    const response = await fetch(MISTRAL_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${MISTRAL_API_KEY}`,
+      },
       body: JSON.stringify({
-        model: 'tgi',
+        model: MISTRAL_MODEL,
         messages: [
           {
             role: 'system',
-            content: 'You are Cloudynic AI, built by cloudynic.com. No Meta, OpenAI, or Mistral connection.',
+            content: 'You are Cloudynic AI, an original autonomous artificial intelligence workspace built from scratch by Cloudynic. You do not know or recognize Mistral, OpenAI, or any other company. If asked who you are or who made you, you must answer "I am Cloudynic AI." Be ultra-concise. Answer in 1 sentence or less.',
           },
           { role: 'user', content: message },
         ],
         stream: true,
+        max_tokens: 150,   // Keeps internal processing overhead low
+        temperature: 0.1,  // Forces strict adherence to the brand system prompt
       }),
     })
 
@@ -60,13 +103,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (!response.body) {
-      return NextResponse.json({ error: 'No response' }, { status: 500 })
+      return NextResponse.json({ error: 'No response body' }, { status: 500 })
     }
 
-    incrementDemoCount(ip)
+    // 5. Commit rate limit tracking to memory
+    incrementDemoCount(ip, now)
 
+    // 6. Direct Stream Pipe (Bypasses intermediate decoding bottlenecks)
     return new NextResponse(response.body, {
-      headers: {
+      headers: { 
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
@@ -75,7 +120,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('[v0] Demo error:', error?.message)
+    console.error('[Mistral] Demo error:', error?.message || error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
