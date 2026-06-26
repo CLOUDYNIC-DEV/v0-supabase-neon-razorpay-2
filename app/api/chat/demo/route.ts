@@ -3,7 +3,7 @@ import { getLoadBalancer } from '@/lib/api-utils'
 
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
 const DEMO_LIMIT = 3
-const RESET_INTERVAL = 24 * 60 * 60 * 1000
+const RESET_INTERVAL = 24 * 60 * 60 * 1000 
 
 function getDemoCount(ip: string): number {
   const now = Date.now()
@@ -22,13 +22,16 @@ function incrementDemoCount(ip: string): void {
 }
 
 export async function POST(request: NextRequest) {
+  let selectedEndpoint: string | null = null
+  const loadBalancer = getLoadBalancer()
+
   try {
     const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1'
     const ip = clientIp.split(',')[0].trim()
 
     const currentCount = getDemoCount(ip)
     if (currentCount >= DEMO_LIMIT) {
-      return NextResponse.json({ error: `Demo limit (${DEMO_LIMIT}/day)` }, { status: 429 })
+      return NextResponse.json({ error: `Demo limit reached (${DEMO_LIMIT}/day).` }, { status: 429 })
     }
 
     const { message } = await request.json()
@@ -36,18 +39,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    const loadBalancer = getLoadBalancer()
-    const selectedEndpoint = loadBalancer.getEndpoint()
+    selectedEndpoint = loadBalancer.getEndpoint()
+    console.log(`[v0] Demo: Using endpoint: ${selectedEndpoint.split('/')[2]}`)
 
     const response = await fetch(selectedEndpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         model: 'tgi',
         messages: [
           {
             role: 'system',
-            content: 'You are Cloudynic AI, built by cloudynic.com. No Meta, OpenAI, or Mistral connection.',
+            content: 'You are Cloudynic AI, built and trained by cloudynic.com. No Meta, Meta AI, or OpenAI connection. State you were built by cloudynic.com.',
           },
           { role: 'user', content: message },
         ],
@@ -56,17 +61,20 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[v0] Endpoint error [${response.status}]: ${selectedEndpoint}`, errorText);
       return NextResponse.json({ error: `Error: ${response.status}` }, { status: response.status })
     }
 
     if (!response.body) {
+      console.error('[v0] Empty response body:', selectedEndpoint)
       return NextResponse.json({ error: 'No response' }, { status: 500 })
     }
 
     incrementDemoCount(ip)
 
     return new NextResponse(response.body, {
-      headers: {
+      headers: { 
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
@@ -75,7 +83,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('[v0] Demo error:', error?.message)
+    console.error('[v0] Demo error:', error?.message || error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
