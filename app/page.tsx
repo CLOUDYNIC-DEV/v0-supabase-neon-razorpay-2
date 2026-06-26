@@ -155,10 +155,10 @@ export default function Page() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
           <div className="animate-fade-in-up order-2 md:order-1">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 leading-tight animate-fade-in-up text-balance">
-              CUSTOMIZABLE AND AFFORDABLE AI FOR ALL
+              UNLIMITED AND AFFORDABLE AI FOR ALL
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 leading-relaxed animate-fade-in-up text-balance" style={{ animationDelay: '0.1s' }}>
-              Launch Your Own ChatGPT like AI app with your own training and handle Unlimited user requests for Just $9
+              Chat unlimited. Launch Your Own ChatGPT like AI app with your own training and handle Unlimited user requests for Just $9
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
               <Link
