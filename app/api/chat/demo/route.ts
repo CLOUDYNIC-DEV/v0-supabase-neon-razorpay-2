@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const ENDPOINTS = [
-  "https://darkmindforever-server.hf.space/v1/chat/completions",
-  "https://darkmindforever-server2.hf.space/v1/chat/completions",
-  "https://darkmindforever-server3.hf.space/v1/chat/completions",
-  "https://darkmindforever-server4.hf.space/v1/chat/completions",
-  "https://darkmindforever-server5.hf.space/v1/chat/completions",
-  "https://darkmindforever-server6.hf.space/v1/chat/completions"
-]
-
-let currentEndpointIndex = 0
+import { getLoadBalancer } from '@/lib/api-utils'
 
 const demoLimits = new Map<string, { count: number; resetTime: number }>()
 const DEMO_LIMIT = 3
-const RESET_INTERVAL = 24 * 60 * 60 * 1000 
+const RESET_INTERVAL = 24 * 60 * 60 * 1000
 
 function getDemoCount(ip: string): number {
   const now = Date.now()
@@ -38,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const currentCount = getDemoCount(ip)
     if (currentCount >= DEMO_LIMIT) {
-      return NextResponse.json({ error: `Demo limit reached (${DEMO_LIMIT}/day).` }, { status: 429 })
+      return NextResponse.json({ error: `Demo limit (${DEMO_LIMIT}/day)` }, { status: 429 })
     }
 
     const { message } = await request.json()
@@ -46,23 +36,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
     }
 
-    const selectedEndpoint = ENDPOINTS[currentEndpointIndex]
-    currentEndpointIndex = (currentEndpointIndex + 1) % ENDPOINTS.length
+    const loadBalancer = getLoadBalancer()
+    const selectedEndpoint = loadBalancer.getEndpoint()
 
-    // Hugging Face standard configuration
     const response = await fetch(selectedEndpoint, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        // OPTIONAL: If your spaces are private or rate-limited, uncomment the line below and add your HF Token
-        // 'Authorization': `Bearer ${process.env.HF_ACCESS_TOKEN}` 
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'tgi', // Hugging Face Text Generation Inference spaces usually look for 'tgi' or ignore the parameter entirely
+        model: 'tgi',
         messages: [
           {
             role: 'system',
-            content: 'You are Cloudynic AI, built and trained by cloudynic.com. You have NO connection to Meta, Meta AI, or OpenAI. State clearly that you were built by cloudynic.com. Never mention Meta, Meta AI, or Llama.',
+            content: 'You are Cloudynic AI, built by cloudynic.com. No Meta, OpenAI, or Mistral connection.',
           },
           { role: 'user', content: message },
         ],
@@ -71,22 +56,17 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`HF Endpoint Fail [${response.status}]:`, errorText);
-      return NextResponse.json({ error: `Upstream Space Error: ${response.status}` }, { status: response.status })
+      return NextResponse.json({ error: `Error: ${response.status}` }, { status: response.status })
     }
 
     if (!response.body) {
-      return NextResponse.json({ error: 'Empty stream body from Hugging Face' }, { status: 500 })
+      return NextResponse.json({ error: 'No response' }, { status: 500 })
     }
 
     incrementDemoCount(ip)
 
-    // Convert the Node Web Stream seamlessly to prevent Next.js from throwing a 500
-    const stream = response.body as unknown as ReadableStream;
-
-    return new NextResponse(stream, {
-      headers: { 
+    return new NextResponse(response.body, {
+      headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
@@ -95,7 +75,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('Direct Route streaming error:', error)
-    return NextResponse.json({ error: `Pipeline Error: ${error?.message || error}` }, { status: 500 })
+    console.error('[v0] Demo error:', error?.message)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

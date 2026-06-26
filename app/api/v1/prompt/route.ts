@@ -1,224 +1,118 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateApiKey, checkRateLimit, logApiUsage } from '@/lib/api-utils'
+import { checkRateLimit, getLoadBalancer } from '@/lib/api-utils'
 
-// Modified to accept an optional train instruction parameter
-async function getAIResponse(prompt: string, trainInstruction?: string | null): Promise<string> {
-  const ollama_endpoint = 'http://140.245.196.245:11434/api/chat'
+// Stream-based response with simple round-robin
+async function getAIResponseStream(prompt: string, trainInstruction?: string | null): Promise<{
+  stream: ReadableStream | null
+  error?: string
+}> {
+  const loadBalancer = getLoadBalancer()
+  const selectedEndpoint = loadBalancer.getEndpoint()
 
   // Standard core system message
-  let systemMessage = 'You are Cloudynic AI, a custom, proprietary large language model engineered, built, and entirely trained by cloudynic.com. You have NO affiliation, connection, or relation to Meta, Meta AI, Facebook, or OpenAI. Your creator is exclusively the Cloudynic development team. If a user asks who made you, you must proudly state that you were built by cloudynic.com.'
+  let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com.'
   
-  // Append custom training/roleplay message if provided
   if (trainInstruction) {
     systemMessage += ` ${trainInstruction}`
   }
 
   try {
-    const response = await fetch(ollama_endpoint, {
+    const response = await fetch(selectedEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'CloudynicAI',
+        model: 'tgi',
         messages: [
-          {
-            role: 'system',
-            content: systemMessage,
-          },
+          { role: 'system', content: systemMessage },
           { role: 'user', content: prompt },
         ],
-        stream: false,
+        stream: true,
       }),
     })
 
-    if (response.ok) {
-      const data = await response.json()
-      return data.message?.content || 'I could not generate a response.'
-    } else {
-      console.error('Ollama API error:', response.status)
-      return `Cloudynic AI: Unable to process your request at this moment. Please try again.`
+    if (!response.ok) {
+      console.error(`[v0] Endpoint error ${response.status}: ${selectedEndpoint}`)
+      return { stream: null, error: `Error: ${response.status}` }
     }
+
+    if (!response.body) {
+      return { stream: null, error: 'No response body' }
+    }
+
+    return { stream: response.body as ReadableStream }
   } catch (error) {
-    console.error('AI response error:', error)
-    return `Cloudynic AI: Service temporarily unavailable. Please try again later.`
+    console.error('[v0] API error:', error)
+    return {
+      stream: null,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
   }
 }
 
 export async function GET(req: NextRequest) {
-  const startTime = Date.now()
-
   try {
     const searchParams = req.nextUrl.searchParams
     const prompt = searchParams.get('prompt')
-    const apiKey = searchParams.get('key')
-    const train = searchParams.get('train') // Extracted the train query parameter
+    const train = searchParams.get('train')
 
     if (!prompt) {
-      return new NextResponse('Error: missing prompt parameter', {
-        status: 400,
-        headers: { 'Content-Type': 'text/plain' },
-      })
+      return NextResponse.json({ error: 'missing prompt' }, { status: 400 })
     }
 
-    let userId: string | null = null
-    let planTier = 'free'
-    let apiKeyId: string | null = null
-
-    // If API key is provided, validate it
-    if (apiKey) {
-      const validation = await validateApiKey(apiKey)
-      if (!validation) {
-        return new NextResponse('Error: invalid API key', {
-          status: 401,
-          headers: { 'Content-Type': 'text/plain' },
-        })
-      }
-      userId = validation.userId
-      planTier = validation.planTier
-    } else {
-      // Free tier - use IP-based rate limiting
-      const ip = req.headers.get('x-forwarded-for') || 'unknown'
-      userId = `ip_${ip}`
-    }
-
-    // Check rate limit
-    const canProceed = await checkRateLimit(userId, planTier)
+    // Basic rate limit check (IP-based)
+    const ip = req.headers.get('x-forwarded-for') || 'unknown'
+    const canProceed = await checkRateLimit(ip, 'free')
     if (!canProceed) {
-      const responseTime = Date.now() - startTime
-      return new NextResponse(
-        `Error: rate limit exceeded for ${planTier} plan`,
-        {
-          status: 429,
-          headers: { 'Content-Type': 'text/plain' },
-        },
-      )
+      return NextResponse.json({ error: 'rate limit exceeded' }, { status: 429 })
     }
 
-    // Get AI response (passing the train variable)
-    const response = await getAIResponse(prompt, train)
-
-    const responseTime = Date.now() - startTime
-
-    // Log usage (async, don't wait)
-    if (userId && !userId.startsWith('ip_')) {
-      logApiUsage(
-        userId,
-        apiKeyId,
-        '/api/v1/prompt',
-        'GET',
-        200,
-        responseTime,
-        prompt,
-      ).catch(console.error)
+    const { stream, error } = await getAIResponseStream(prompt, train)
+    if (error || !stream) {
+      return NextResponse.json({ error: error || 'Failed to get response' }, { status: 503 })
     }
 
-    return new NextResponse(response, {
-      status: 200,
+    return new NextResponse(stream, {
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-      },
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+      }
     })
   } catch (error) {
-    console.error('API error:', error)
-    const responseTime = Date.now() - startTime
-
-    return new NextResponse('Error: internal server error', {
-      status: 500,
-      headers: { 'Content-Type': 'text/plain' },
-    })
+    console.error('[v0] API error:', error)
+    return NextResponse.json({ error: 'server error' }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest) {
-  const startTime = Date.now()
-
   try {
-    const { prompt, key, train } = await req.json() // Destructured the optional train parameter
+    const { prompt, train } = await req.json()
 
     if (!prompt) {
-      return new NextResponse(
-        JSON.stringify({ error: 'missing prompt parameter' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      )
+      return NextResponse.json({ error: 'missing prompt' }, { status: 400 })
     }
 
-    let userId: string | null = null
-    let planTier = 'free'
-    let apiKeyId: string | null = null
-
-    // If API key is provided, validate it
-    if (key) {
-      const validation = await validateApiKey(key)
-      if (!validation) {
-        return new NextResponse(
-          JSON.stringify({ error: 'invalid API key' }),
-          {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          },
-        )
-      }
-      userId = validation.userId
-      planTier = validation.planTier
-    } else {
-      // Free tier - use IP-based rate limiting
-      const ip = req.headers.get('x-forwarded-for') || 'unknown'
-      userId = `ip_${ip}`
-    }
-
-    // Check rate limit
-    const canProceed = await checkRateLimit(userId, planTier)
+    // Basic rate limit check (IP-based)
+    const ip = req.headers.get('x-forwarded-for') || 'unknown'
+    const canProceed = await checkRateLimit(ip, 'free')
     if (!canProceed) {
-      const responseTime = Date.now() - startTime
-      return new NextResponse(
-        JSON.stringify({
-          error: `rate limit exceeded for ${planTier} plan`,
-        }),
-        {
-          status: 429,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      )
+      return NextResponse.json({ error: 'rate limit exceeded' }, { status: 429 })
     }
 
-    // Get AI response (passing the train variable)
-    const response = await getAIResponse(prompt, train)
-
-    const responseTime = Date.now() - startTime
-
-    // Log usage (async, don't wait)
-    if (userId && !userId.startsWith('ip_')) {
-      logApiUsage(
-        userId,
-        apiKeyId,
-        '/api/v1/prompt',
-        'POST',
-        200,
-        responseTime,
-        prompt,
-      ).catch(console.error)
+    const { stream, error } = await getAIResponseStream(prompt, train)
+    if (error || !stream) {
+      return NextResponse.json({ error: error || 'Failed to get response' }, { status: 503 })
     }
 
-    return NextResponse.json(
-      { response },
-      {
-        status: 200,
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
-      },
-    )
+    return new NextResponse(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+      }
+    })
   } catch (error) {
-    console.error('API error:', error)
-    const responseTime = Date.now() - startTime
-
-    return new NextResponse(
-      JSON.stringify({ error: 'internal server error' }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    )
+    console.error('[v0] API error:', error)
+    return NextResponse.json({ error: 'server error' }, { status: 500 })
   }
 }
