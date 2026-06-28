@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, getLoadBalancer } from '@/lib/api-utils'
 
-// Stream-based response with simple round-robin
+// Stream-based response adapted for your 8x Mistral Cluster
 async function getAIResponseStream(prompt: string, trainInstruction?: string | null): Promise<{
   stream: ReadableStream | null
   error?: string
 }> {
   const loadBalancer = getLoadBalancer()
-  const selectedEndpoint = loadBalancer.getEndpoint()
+  
+  // Destructure the key, URL configuration, and strict 1024 max token limit
+  const config = loadBalancer.getAvailableConfig()
 
   // Standard core system message
   let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com.'
@@ -17,21 +19,25 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
   }
 
   try {
-    const response = await fetch(selectedEndpoint, {
+    const response = await fetch(config.endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}` // Pass the load-balanced key
+      },
       body: JSON.stringify({
-        model: 'tgi',
+        model: 'mistral-tiny', // Update this string to your preferred model tier (e.g., open-mistral-7b, mistral-small-latest)
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: prompt },
         ],
+        max_tokens: config.maxTokens, // Enforces the strict 1024 token limit cleanly
         stream: true,
       }),
     })
 
     if (!response.ok) {
-      console.error(`[v0] Endpoint error ${response.status}: ${selectedEndpoint}`)
+      console.error(`[Mistral Cluster] Endpoint error ${response.status} using key instance context`)
       return { stream: null, error: `Error: ${response.status}` }
     }
 
@@ -41,7 +47,7 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
 
     return { stream: response.body as ReadableStream }
   } catch (error) {
-    console.error('[v0] API error:', error)
+    console.error('[Mistral Cluster] API error:', error)
     return {
       stream: null,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -79,7 +85,7 @@ export async function GET(req: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('[v0] API error:', error)
+    console.error('[Mistral Route] API error:', error)
     return NextResponse.json({ error: 'server error' }, { status: 500 })
   }
 }
@@ -112,7 +118,7 @@ export async function POST(req: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('[v0] API error:', error)
+    console.error('[Mistral Route] API error:', error)
     return NextResponse.json({ error: 'server error' }, { status: 500 })
   }
 }
