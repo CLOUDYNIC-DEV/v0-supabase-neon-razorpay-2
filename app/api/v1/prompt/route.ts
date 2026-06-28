@@ -6,10 +6,10 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
   stream: ReadableStream | null
   error?: string
 }> {
-  // Access the load-balanced cluster config
+  // Gracefully calls the load balancer
   const config = getLoadBalancer().getAvailableConfig()
 
-  // Cloudynic Customization
+  // Standard Cloudynic custom instruction
   let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com.'
   if (trainInstruction) {
     systemMessage += ` ${trainInstruction}`
@@ -20,36 +20,38 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}` // Authenticate with specific cluster key
+        'Authorization': `Bearer ${config.apiKey}` // Pass dynamic bearer key
       },
       body: JSON.stringify({
-        model: 'ministral-8b-latest', // Standardized model identifier
+        model: 'ministral-8b-latest',
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: prompt },
         ],
-        max_tokens: config.maxTokens, // Enforces 1024 limit
+        max_tokens: config.maxTokens, // Enforces 1024 limit natively
         stream: true,
       }),
     })
 
     if (!response.ok || !response.body) {
-      return { stream: null, error: `Mistral API returned status: ${response.status}` }
+      return { stream: null, error: `Mistral API returned error status: ${response.status}` }
     }
 
-    // Transform stream: Extracts only the 'content' string, discards JSON metadata
+    // Transform stream: Extracts clean text content, strips away raw chunk JSON junk
     const transformStream = new TransformStream({
       transform(chunk, controller) {
         const text = new TextDecoder().decode(chunk)
-        text.split('\n').forEach(line => {
+        const lines = text.split('\n')
+        
+        for (const line of lines) {
           if (line.startsWith('data: ') && line !== 'data: [DONE]') {
             try {
               const json = JSON.parse(line.replace('data: ', ''))
               const content = json.choices[0]?.delta?.content
               if (content) controller.enqueue(content)
-            } catch (e) { /* Ignore non-JSON chunks */ }
+            } catch (e) { /* Catch & skip partial JSON breaks smoothly */ }
           }
-        })
+        }
       }
     })
 
@@ -57,33 +59,53 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
   } catch (error) {
     return { 
       stream: null, 
-      error: error instanceof Error ? error.message : 'Unknown Mistral error' 
+      error: error instanceof Error ? error.message : 'Unknown Mistral connection issue' 
     }
   }
 }
 
-// Unified Handler for GET and POST
+// Unified Execution for GET and POST Requests
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, train } = await req.json()
-    if (!prompt) return NextResponse.json({ error: 'missing prompt' }, { status: 400 })
+    let prompt = ''
+    let train = null
 
+    if (req.method === 'POST') {
+      const body = await req.json()
+      prompt = body.prompt
+      train = body.train
+    } else {
+      const searchParams = req.nextUrl.searchParams
+      prompt = searchParams.get('prompt') || ''
+      train = searchParams.get('train')
+    }
+
+    if (!prompt) {
+      return NextResponse.json({ error: 'missing prompt' }, { status: 400 })
+    }
+
+    // Basic rate limit check (IP-based)
     const ip = req.headers.get('x-forwarded-for') || 'unknown'
-    if (!(await checkRateLimit(ip, 'free'))) {
+    const canProceed = await checkRateLimit(ip, 'free')
+    if (!canProceed) {
       return NextResponse.json({ error: 'rate limit exceeded' }, { status: 429 })
     }
 
     const { stream, error } = await getAIResponseStream(prompt, train)
-    if (error || !stream) return NextResponse.json({ error }, { status: 503 })
+    if (error || !stream) {
+      return NextResponse.json({ error: error || 'Failed to initialize response stream' }, { status: 503 })
+    }
 
+    // Send down clean text tokens directly to the client
     return new NextResponse(stream, {
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8', // Clean text streaming
-        'Cache-Control': 'no-cache',
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
       }
     })
   } catch (error) {
+    console.error('[Cloudynic API] Handler Error:', error)
     return NextResponse.json({ error: 'server error' }, { status: 500 })
   }
 }
