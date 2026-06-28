@@ -3,124 +3,90 @@ import crypto from 'crypto'
 
 declare global {
   var freeIpLimits: Map<string, { count: number; resetTime: number }> | undefined
-  var endpointLoadBalancer: SimpleLoadBalancer | undefined
-  var keepAliveIntervalId: NodeJS.Timeout | undefined
+  var mistralLoadBalancer: MistralLoadBalancer | undefined
 }
 
-// Comprehensive list of your Hugging Face Space clusters
-const ENDPOINTS = [
-  // Dankerob3 servers
-  "https://dankerob3-server.hf.space/v1/chat/completions",
-  "https://dankerob3-server2.hf.space/v1/chat/completions",
-  "https://dankerob3-server3.hf.space/v1/chat/completions",
-  "https://dankerob3-server4.hf.space/v1/chat/completions",
-  "https://dankerob3-server5.hf.space/v1/chat/completions",
-  "https://dankerob3-server6.hf.space/v1/chat/completions",
-
-  // Dankerob2 servers
-  "https://dankerob2-server.hf.space/v1/chat/completions",
-  "https://dankerob2-server2.hf.space/v1/chat/completions",
-  "https://dankerob2-server3.hf.space/v1/chat/completions",
-  "https://dankerob2-server4.hf.space/v1/chat/completions",
-  "https://dankerob2-server5.hf.space/v1/chat/completions",
-  "https://dankerob2-server6.hf.space/v1/chat/completions",
-
-  // Dankerob1 servers
-  "https://dankerob1-server.hf.space/v1/chat/completions",
-  "https://dankerob1-server2.hf.space/v1/chat/completions",
-  "https://dankerob1-server3.hf.space/v1/chat/completions",
-  "https://dankerob1-server4.hf.space/v1/chat/completions",
-  "https://dankerob1-server5.hf.space/v1/chat/completions",
-  "https://dankerob1-server6.hf.space/v1/chat/completions",
-
-  // Hellomoto11 servers
-  "https://hellomoto11-server.hf.space/v1/chat/completions",
-  "https://hellomoto11-server2.hf.space/v1/chat/completions",
-  "https://hellomoto11-server3.hf.space/v1/chat/completions",
-  "https://hellomoto11-server4.hf.space/v1/chat/completions",
-  "https://hellomoto11-server5.hf.space/v1/chat/completions",
-  "https://hellomoto11-server6.hf.space/v1/chat/completions",
-
-  // DarkMind Forever servers
-  "https://darkmindforever-server.hf.space/v1/chat/completions",
-  "https://darkmindforever-server2.hf.space/v1/chat/completions",
-  "https://darkmindforever-server3.hf.space/v1/chat/completions",
-  "https://darkmindforever-server4.hf.space/v1/chat/completions",
-  "https://darkmindforever-server5.hf.space/v1/chat/completions",
-  "https://darkmindforever-server6.hf.space/v1/chat/completions",
-
-  // ResearchQ servers
-  "http://researchq-server.hf.space/v1/chat/completions",
-  "http://researchq-server1.hf.space/v1/chat/completions",
-  "http://researchq-server2.hf.space/v1/chat/completions",
-  "http://researchq-server3.hf.space/v1/chat/completions",
-  "http://researchq-server4.hf.space/v1/chat/completions",
-  "http://researchq-server5.hf.space/v1/chat/completions"
+// 1. Define your 8 Mistral API configurations with strict token ceilings
+const MISTRAL_CONFIGS = [
+  { apiKey: "MNGIKlYrhA3JmYElrcr8c9es5anfiUUQ", endpoint: "https://api.mistral.ai/v1/chat/completions", maxTokens: 1024 },
+  { apiKey: "Gkp1OYIzJHAnuvniImF82PzULivm2sV2", endpoint: "https://api.mistral.ai/v1/chat/completions", maxTokens: 1024 },
+  { apiKey: "Q5YFuFt0nojlNEfh3tCI7FIAY9mnnjo1", endpoint: "https://api.mistral.ai/v1/chat/completions", maxTokens: 1024 },
+  { apiKey: "nCxuBxILGeCHvwG0SviSIFflROMVGTvW", endpoint: "https://api.mistral.ai/v1/chat/completions", maxTokens: 1024 },
+  { apiKey: "jX64suS0OxC08rfz4sAkl5V4OSBjo4Nt", endpoint: "https://api.mistral.ai/v1/chat/completions", maxTokens: 1024 },
+  { apiKey: "1X4v00yHQ0DbGbvNA4sxzMvifhs4mrV4", endpoint: "https://api.mistral.ai/v1/chat/completions", maxTokens: 1024 },
+  { apiKey: "uTa4SKQmjdnb7o1oSwEdsKiPQ3bD7Her", endpoint: "https://api.mistral.ai/v1/chat/completions", maxTokens: 1024 },
+  { apiKey: "pDgEO7xGL9lx4YLWA0yKFGjSR3rFga0M", endpoint: "https://api.mistral.ai/v1/chat/completions", maxTokens: 1024 },
 ]
 
-class SimpleLoadBalancer {
+const MAX_DAILY_REQUESTS_PER_KEY = 14000 
+
+class MistralLoadBalancer {
   private currentIndex = 0
-  private requestCount = 0
+  private dailyTracker: { [keyIndex: number]: { count: number; dateStr: string } } = {}
 
   constructor() {
-    this.startKeepAliveEngine()
+    MISTRAL_CONFIGS.forEach((_, index) => {
+      this.dailyTracker[index] = { count: 0, dateStr: this.getTodayString() }
+    })
   }
 
-  getEndpoint(): string {
-    const endpoint = ENDPOINTS[this.currentIndex]
-    this.currentIndex = (this.currentIndex + 1) % ENDPOINTS.length
-    this.requestCount++
-    console.log(`[v0] Using endpoint ${this.currentIndex}: ${endpoint.split('/')[2]}`)
-    return endpoint
+  private getTodayString(): string {
+    return new Date().toISOString().split('T')[0]
+  }
+
+  /**
+   * Selects the next available key/endpoint and enforces daily caps.
+   */
+  getAvailableConfig(): { apiKey: string; endpoint: string; maxTokens: number } {
+    const today = this.getTodayString()
+    let attempts = 0
+
+    while (attempts < MISTRAL_CONFIGS.length) {
+      const index = this.currentIndex
+      this.currentIndex = (this.currentIndex + 1) % MISTRAL_CONFIGS.length
+      attempts++
+
+      let tracker = this.dailyTracker[index]
+
+      if (tracker.dateStr !== today) {
+        tracker.count = 0
+        tracker.dateStr = today
+      }
+
+      if (tracker.count < MAX_DAILY_REQUESTS_PER_KEY) {
+        tracker.count++
+        console.log(`[LoadBalancer] Key index ${index} selected. Usage: ${tracker.count}/${MAX_DAILY_REQUESTS_PER_KEY}`);
+        return MISTRAL_CONFIGS[index]
+      }
+    }
+
+    console.warn(`[LoadBalancer] CRITICAL: All Mistral API keys have exhausted their daily quotas!`)
+    return MISTRAL_CONFIGS[0] 
   }
 
   getStatus() {
+    const today = this.getTodayString()
     return {
-      totalEndpoints: ENDPOINTS.length,
-      totalRequests: this.requestCount,
-      currentIndex: this.currentIndex,
-      endpoints: ENDPOINTS.map((url, i) => ({
-        index: i,
-        url: url.split('/')[2],
-        endpoint: url
-      }))
-    }
-  }
-
-  // Iterates over all endpoints and fires a lightweight GET to wake them up
-  private startKeepAliveEngine() {
-    if (global.keepAliveIntervalId) return
-
-    const pokeSpaces = async () => {
-      console.log(`[Keep-Alive] Pinging all ${ENDPOINTS.length} spaces to prevent sleep mode...`)
-      
-      const promises = ENDPOINTS.map(async (endpoint) => {
-        // Strip down the path to just the root domain for a fast homepage touch
-        const baseUrl = endpoint.split('/v1')[0]
-        try {
-          const res = await fetch(baseUrl, { method: 'GET', signal: AbortSignal.timeout(10000) })
-          console.log(`[Keep-Alive] Poked ${baseUrl.split('//')[1]} -> Status: ${res.status}`)
-        } catch (err: any) {
-          console.error(`[Keep-Alive] Failed to poke ${baseUrl.split('//')[1]}: ${err.message}`)
+      totalKeys: MISTRAL_CONFIGS.length,
+      quotas: MISTRAL_CONFIGS.map((conf, i) => {
+        const tracker = this.dailyTracker[i]
+        return {
+          index: i,
+          endpoint: conf.endpoint,
+          maxTokensLimit: conf.maxTokens,
+          requestsToday: tracker.dateStr === today ? tracker.count : 0,
+          remainingToday: MAX_DAILY_REQUESTS_PER_KEY - (tracker.dateStr === today ? tracker.count : 0)
         }
       })
-
-      await Promise.allSettled(promises)
     }
-
-    // Run immediately on boot
-    pokeSpaces()
-
-    // Run every 25 minutes (just under the 30-minute threshold)
-    global.keepAliveIntervalId = setInterval(pokeSpaces, 25 * 60 * 1000)
   }
 }
 
-export function getLoadBalancer(): SimpleLoadBalancer {
-  if (!global.endpointLoadBalancer) {
-    global.endpointLoadBalancer = new SimpleLoadBalancer()
+export function getLoadBalancer(): MistralLoadBalancer {
+  if (!global.mistralLoadBalancer) {
+    global.mistralLoadBalancer = new MistralLoadBalancer()
   }
-  return global.endpointLoadBalancer as SimpleLoadBalancer
+  return global.mistralLoadBalancer as MistralLoadBalancer
 }
 
 export async function generateApiKey(): Promise<string> {
