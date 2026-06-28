@@ -35,7 +35,7 @@ class MistralLoadBalancer {
   }
 
   /**
-   * Selects the next available key/endpoint and enforces daily caps.
+   * Selects the next available key/endpoint configuration and enforces daily caps.
    */
   getAvailableConfig(): { apiKey: string; endpoint: string; maxTokens: number } {
     const today = this.getTodayString()
@@ -62,6 +62,13 @@ class MistralLoadBalancer {
 
     console.warn(`[LoadBalancer] CRITICAL: All Mistral API keys have exhausted their daily quotas!`)
     return MISTRAL_CONFIGS[0] 
+  }
+
+  /**
+   * Alias method to prevent Next.js background chunks from throwing a TypeError.
+   */
+  getEndpoint() {
+    return this.getAvailableConfig()
   }
 
   getStatus() {
