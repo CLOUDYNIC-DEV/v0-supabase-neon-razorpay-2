@@ -1,29 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, getLoadBalancer } from '@/lib/api-utils'
 
-// A lightweight helper to get real-time Google/Bing search snippets via a fast provider (e.g., Tavily, Brave, or SearXNG)
-async function fetchRealTimeContext(query: string): Promise<string> {
-  try {
-    // Replace this with your preferred search engine API call
-    const res = await fetch(`https://api.tavily.com/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: process.env.TAVILY_API_KEY, // Add this token to your Vercel/Render env
-        query: query,
-        max_results: 3
-      })
-    })
-    
-    if (!res.ok) return ''
-    const data = await res.json()
-    // Map out the results to clean snippets for your 3B model context
-    return data.results.map((r: any) => `Source: ${r.title}\nContent: ${r.content}`).join('\n\n')
-  } catch (err) {
-    console.error('[Web Search Error]: Fallback to default knowledge base.', err)
-    return ''
-  }
-}
+// CRITICAL FOR VERCEL: Increases the serverless timeout limit to prevent function cuts during live search execution
+export const maxDuration = 30; 
 
 async function getAIResponseStream(prompt: string, trainInstruction?: string | null): Promise<{
   stream: ReadableStream | null
@@ -31,22 +10,9 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
 }> {
   const config = getLoadBalancer().getEndpoint()
 
-  // Base Cloudynic customization message
   let systemMessage = 'You are Cloudynic AI, built and trained by cloudynic.com.'
   if (trainInstruction) {
     systemMessage += ` ${trainInstruction}`
-  }
-
-  // Check if the prompt requires fresh, real-time data
-  const basicSearchTriggers = ['weather', 'news', 'today', 'latest', '2026', 'who is', 'current']
-  const needsSearch = basicSearchTriggers.some(trigger => prompt.toLowerCase().includes(trigger))
-
-  if (needsSearch) {
-    console.log(`[Cloudynic AI] Querying real-time context for: "${prompt}"`)
-    const liveSnippets = await fetchRealTimeContext(prompt)
-    if (liveSnippets) {
-      systemMessage += `\n\n[REAL-TIME CONTEXT DATA]\nUse this fresh search data from the live web to accurately answer the user's prompt:\n${liveSnippets}`
-    }
   }
 
   try {
@@ -57,42 +23,50 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
         'Authorization': `Bearer ${config.apiKey}`
       },
       body: JSON.stringify({
-        model: 'ministral-3b-2512', // Your exact edge-tier 3B model identifier
+        // Targeting the robust 2506 enterprise build
+        model: 'mistral-small-2506', 
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: prompt },
         ],
+        // Activates native internet browsing features on the 2506 architecture
+        tools: [
+          { type: 'web_search' } 
+        ],
+        temperature: 0.15, // Mistral recommended lower temperature for optimal tool-call processing
         max_tokens: config.maxTokens,
         stream: true,
       }),
     })
 
     if (!response.ok || !response.body) {
-      return { stream: null, error: `Mistral API cluster error: ${response.status}` }
+      return { stream: null, error: `Mistral Cluster Error Code: ${response.status}` }
     }
 
+    // Transform stream: Extracts clean output strings, cutting structural array noise
     const transformStream = new TransformStream({
       transform(chunk, controller) {
         const text = new TextDecoder().decode(chunk)
-        text.split('\n').forEach(line => {
+        const lines = text.split('\n')
+        
+        for (const line of lines) {
           if (line.startsWith('data: ') && line !== 'data: [DONE]') {
             try {
               const json = JSON.parse(line.replace('data: ', ''))
               const content = json.choices[0]?.delta?.content
               if (content) controller.enqueue(content)
-            } catch (e) {}
+            } catch (e) { /* skip legacy fragment formats */ }
           }
-        })
+        }
       }
     })
 
     return { stream: response.body.pipeThrough(transformStream) }
   } catch (error) {
-    return { stream: null, error: error instanceof Error ? error.message : 'Unknown Mistral connection error' }
+    return { stream: null, error: error instanceof Error ? error.message : 'Unknown connection fault' }
   }
 }
 
-// Unified Endpoint Execution
 export async function POST(req: NextRequest) {
   try {
     let prompt = ''
@@ -121,7 +95,7 @@ export async function POST(req: NextRequest) {
     return new NextResponse(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
       }
     })
