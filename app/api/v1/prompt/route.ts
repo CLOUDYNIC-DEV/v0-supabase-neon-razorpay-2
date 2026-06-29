@@ -23,7 +23,7 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
         'Authorization': `Bearer ${config.apiKey}`
       },
       body: JSON.stringify({
-        model: 'mistral-small-2506', 
+        model: 'mistral-small-latest', 
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: prompt },
