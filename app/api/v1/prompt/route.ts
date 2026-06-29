@@ -23,17 +23,15 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
         'Authorization': `Bearer ${config.apiKey}`
       },
       body: JSON.stringify({
-        // Targeting the robust 2506 enterprise build
         model: 'mistral-small-2506', 
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: prompt },
         ],
-        // Activates native internet browsing features on the 2506 architecture
         tools: [
           { type: 'web_search' } 
         ],
-        temperature: 0.15, // Mistral recommended lower temperature for optimal tool-call processing
+        temperature: 0.15, // Lower temperature optimized for structured execution
         max_tokens: config.maxTokens,
         stream: true,
       }),
@@ -43,7 +41,6 @@ async function getAIResponseStream(prompt: string, trainInstruction?: string | n
       return { stream: null, error: `Mistral Cluster Error Code: ${response.status}` }
     }
 
-    // Transform stream: Extracts clean output strings, cutting structural array noise
     const transformStream = new TransformStream({
       transform(chunk, controller) {
         const text = new TextDecoder().decode(chunk)
