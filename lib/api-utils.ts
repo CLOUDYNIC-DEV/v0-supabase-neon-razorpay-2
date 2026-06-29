@@ -6,7 +6,6 @@ declare global {
   var mistralLoadBalancer: MistralLoadBalancer | undefined
 }
 
-// 1. Define your 8 Mistral API configurations with strict token ceilings
 const MISTRAL_CONFIGS = [
   { apiKey: "MNGIKlYrhA3JmYElrcr8c9es5anfiUUQ", endpoint: "https://api.mistral.ai/v1/chat/completions", maxTokens: 1024 },
   { apiKey: "Gkp1OYIzJHAnuvniImF82PzULivm2sV2", endpoint: "https://api.mistral.ai/v1/chat/completions", maxTokens: 1024 },
@@ -34,9 +33,6 @@ class MistralLoadBalancer {
     return new Date().toISOString().split('T')[0]
   }
 
-  /**
-   * Selects the next available key/endpoint configuration and enforces daily caps.
-   */
   getAvailableConfig(): { apiKey: string; endpoint: string; maxTokens: number } {
     const today = this.getTodayString()
     let attempts = 0
@@ -64,9 +60,6 @@ class MistralLoadBalancer {
     return MISTRAL_CONFIGS[0] 
   }
 
-  /**
-   * Alias method to prevent Next.js background chunks from throwing a TypeError.
-   */
   getEndpoint() {
     return this.getAvailableConfig()
   }
@@ -96,58 +89,18 @@ export function getLoadBalancer(): MistralLoadBalancer {
   return global.mistralLoadBalancer as MistralLoadBalancer
 }
 
-export async function generateApiKey(): Promise<string> {
-  return `sk_${crypto.randomBytes(24).toString('hex')}`
-}
-
-export async function validateApiKey(
-  apiKey: string,
-): Promise<{ userId: string; planTier: string } | null> {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('api_keys')
-    .select('user_id, plan_tier, is_active')
-    .eq('key', apiKey)
-    .eq('is_active', true)
-    .single()
-
-  if (error || !data) {
-    return null
-  }
-
-  await supabase
-    .from('api_keys')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('key', apiKey)
-
-  return {
-    userId: data.user_id,
-    planTier: data.plan_tier,
-  }
-}
-
-export async function checkRateLimit(
-  userId: string,
-  planTier: string,
-): Promise<boolean> {
+export async function checkRateLimit(userId: string, planTier: string): Promise<boolean> {
   if (planTier === 'free' && userId.startsWith('ip_')) {
     if (!global.freeIpLimits) {
       global.freeIpLimits = new Map<string, { count: number; resetTime: number }>()
     }
-    
     const now = Date.now()
     const record = global.freeIpLimits.get(userId)
-    
     if (!record || now > record.resetTime) {
       global.freeIpLimits.set(userId, { count: 1, resetTime: now + 60000 })
       return true
     }
-    
-    if (record.count >= 1) {
-      return false
-    }
-    
+    if (record.count >= 1) return false
     record.count += 1
     return true
   }
@@ -155,7 +108,6 @@ export async function checkRateLimit(
   try {
     const supabase = await createClient()
     const oneMinuteAgo = new Date(Date.now() - 60000).toISOString()
-
     const { count, error } = await supabase
       .from('api_usage')
       .select('id', { count: 'exact' })
@@ -163,77 +115,10 @@ export async function checkRateLimit(
       .gte('created_at', oneMinuteAgo)
 
     if (error) return true
-
-    const limits: Record<string, number> = {
-      pro: 30,
-      pro_max: 999,
-    }
-
+    const limits: Record<string, number> = { pro: 30, pro_max: 999 }
     return (count || 0) < (limits[planTier] || 30)
   } catch (error) {
     console.error('Rate limit check error:', error)
     return true
   }
-}
-
-export async function logApiUsage(
-  userId: string,
-  apiKeyId: string | null,
-  endpoint: string,
-  method: string,
-  statusCode: number,
-  responseTimeMs: number,
-  prompt?: string,
-): Promise<void> {
-  const supabase = await createClient()
-
-  await supabase.from('api_usage').insert({
-    user_id: userId,
-    api_key_id: apiKeyId,
-    endpoint,
-    method,
-    status_code: statusCode,
-    response_time_ms: responseTimeMs,
-    prompt,
-  })
-}
-
-export async function getOrCreateUser(
-  userId: string,
-  email: string,
-): Promise<void> {
-  const supabase = await createClient()
-
-  const { data: existingUser } = await supabase
-    .from('users')
-    .select('id')
-    .eq('id', userId)
-    .single()
-
-  if (!existingUser) {
-    await supabase.from('users').insert({
-      id: userId,
-      email,
-      plan_type: 'free',
-    })
-  }
-}
-
-export async function getUserPlan(userId: string): Promise<string> {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('subscriptions')
-    .select('plan_type')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-
-  if (error || !data) {
-    return 'free'
-  }
-
-  return data.plan_type
 }
