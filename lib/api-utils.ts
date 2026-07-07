@@ -34,6 +34,9 @@ class MistralLoadBalancer {
     return new Date().toISOString().split('T')[0]
   }
 
+  /**
+   * Selects the next available key/endpoint configuration and enforces daily caps.
+   */
   getAvailableConfig(): { apiKey: string; endpoint: string; maxTokens: number } {
     const today = this.getTodayString()
     let attempts = 0
@@ -61,6 +64,9 @@ class MistralLoadBalancer {
     return MISTRAL_CONFIGS[0] 
   }
 
+  /**
+   * Alias method to prevent Next.js background chunks from throwing a TypeError.
+   */
   getEndpoint() {
     return this.getAvailableConfig()
   }
@@ -129,13 +135,19 @@ export async function checkRateLimit(
     if (!global.freeIpLimits) {
       global.freeIpLimits = new Map<string, { count: number; resetTime: number }>()
     }
+    
     const now = Date.now()
     const record = global.freeIpLimits.get(userId)
+    
     if (!record || now > record.resetTime) {
       global.freeIpLimits.set(userId, { count: 1, resetTime: now + 60000 })
       return true
     }
-    if (record.count >= 1) return false
+    
+    if (record.count >= 1) {
+      return false
+    }
+    
     record.count += 1
     return true
   }
@@ -143,6 +155,7 @@ export async function checkRateLimit(
   try {
     const supabase = await createClient()
     const oneMinuteAgo = new Date(Date.now() - 60000).toISOString()
+
     const { count, error } = await supabase
       .from('api_usage')
       .select('id', { count: 'exact' })
@@ -150,7 +163,12 @@ export async function checkRateLimit(
       .gte('created_at', oneMinuteAgo)
 
     if (error) return true
-    const limits: Record<string, number> = { pro: 30, pro_max: 999 }
+
+    const limits: Record<string, number> = {
+      pro: 30,
+      pro_max: 999,
+    }
+
     return (count || 0) < (limits[planTier] || 30)
   } catch (error) {
     console.error('Rate limit check error:', error)
