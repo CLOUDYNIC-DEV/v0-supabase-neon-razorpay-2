@@ -168,7 +168,7 @@ export default function Page() {
                 VIEW PRICING
               </Link>
               <Link
-                href="/auth/sign-up"
+                href="/sign-up"
                 className="px-6 sm:px-8 py-3 sm:py-4 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-smooth hover:scale-105 text-center text-sm sm:text-base"
               >
                 GET STARTED
@@ -206,7 +206,7 @@ export default function Page() {
               <div className="border-t-2 border-foreground p-3 sm:p-4 bg-secondary">
                 <p className="text-xs sm:text-sm font-bold mb-3">Demo limit reached!</p>
                 <Link
-                  href="/auth/sign-up"
+                  href="/sign-up"
                   className="block w-full px-3 sm:px-4 py-2 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-center text-xs sm:text-sm"
                 >
                   SIGN UP FOR UNLIMITED

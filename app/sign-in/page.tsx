@@ -6,6 +6,8 @@ import { authClient } from '@/lib/auth-client'
 import Header from '@/components/header'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default function SignInPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)

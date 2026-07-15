@@ -55,7 +55,7 @@ export default function Pricing() {
             </ul>
 
             <Link
-              href="/auth/sign-up"
+              href="/sign-up"
               className="w-full px-4 sm:px-6 py-2 sm:py-3 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-all text-center animate-fade-in-up text-xs sm:text-sm"
             >
               GET STARTED FREE
@@ -96,7 +96,7 @@ export default function Pricing() {
             </ul>
 
             <Link
-              href="/auth/sign-up?plan=pro"
+              href="/sign-up?plan=pro"
               className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-center text-xs sm:text-sm"
             >
               GET STARTED
@@ -140,7 +140,7 @@ export default function Pricing() {
             </ul>
 
             <Link
-              href="/auth/sign-up?plan=pro_max"
+              href="/sign-up?plan=pro_max"
               className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-center text-xs sm:text-sm"
             >
               GET STARTED

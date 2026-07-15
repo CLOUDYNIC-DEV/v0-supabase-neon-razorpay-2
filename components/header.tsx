@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/auth-client'
 
 export default function Header() {
   const router = useRouter()
@@ -14,21 +14,26 @@ export default function Header() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
+      try {
+        const { data } = await authClient.getSession()
+        setUser(data?.session?.user || null)
+      } catch (err) {
+        console.error('Error checking session:', err)
+      } finally {
+        setLoading(false)
+      }
     }
 
     checkUser()
   }, [])
 
   const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/')
+    try {
+      await authClient.signOut()
+      router.push('/')
+    } catch (err) {
+      console.error('Logout error:', err)
+    }
   }
 
   const isAuthPage = pathname?.startsWith('/auth')
@@ -88,14 +93,31 @@ export default function Header() {
                 ) : (
                   <>
                     <Link
-                      href="/auth/login"
+                      href="/sign-in"
                       className="px-3 md:px-4 py-2 text-xs md:text-sm font-bold border-2 border-foreground hover:bg-foreground hover:text-background transition-smooth"
                     >
-                      LOGIN
+                      SIGN IN
                     </Link>
                     <Link
-                      href="/auth/sign-up"
+                      href="/sign-up"
                       className="px-3 md:px-4 py-2 text-xs md:text-sm font-bold bg-foreground text-background border-2 border-foreground hover:bg-background hover:text-foreground transition-smooth"
+                    >
+                      SIGN UP
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/sign-in"
+                      className="block px-4 py-2 text-sm font-bold border-2 border-foreground hover:bg-foreground hover:text-background transition-smooth"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      SIGN IN
+                    </Link>
+                    <Link
+                      href="/sign-up"
+                      className="block px-4 py-2 text-sm font-bold bg-foreground text-background border-2 border-foreground hover:bg-background hover:text-foreground transition-smooth"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       SIGN UP
                     </Link>

@@ -6,6 +6,8 @@ import { authClient } from '@/lib/auth-client'
 import Header from '@/components/header'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default function DashboardPage() {
   const router = useRouter()
   const [session, setSession] = useState<any>(null)

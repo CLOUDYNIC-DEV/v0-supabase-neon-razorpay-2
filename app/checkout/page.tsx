@@ -6,6 +6,8 @@ import { authClient } from '@/lib/auth-client'
 import Header from '@/components/header'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 const PLANS = {
   pro: { name: 'Pro', price: 199, requestsPerDay: 10000, description: 'Perfect for small projects' },
   pro_max: { name: 'Pro Max', price: 999, requestsPerDay: 'Unlimited', description: 'Best for production apps' },
