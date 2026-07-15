@@ -99,7 +99,7 @@ export default function About() {
             Join thousands of developers building the future with CloudyNIC AI.
           </p>
           <Link
-            href="/auth/sign-up"
+            href="/sign-up"
             className="inline-block px-8 py-4 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all"
           >
             GET STARTED FREE

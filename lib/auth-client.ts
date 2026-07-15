@@ -3,12 +3,12 @@
 import { createAuthClient } from 'better-auth/react'
 
 const getBaseURL = () => {
-  // Only access window on client side
-  if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+  if (typeof window === 'undefined') {
+    return 'http://localhost:3000'
   }
-  // Fallback for server-side calls (shouldn't happen with 'use client')
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  
+  // Use window.location.origin on client - always valid
+  return window.location.origin
 }
 
 export const authClient = createAuthClient({
