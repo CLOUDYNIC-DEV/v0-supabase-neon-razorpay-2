@@ -1,18 +1,39 @@
 'use client'
 
 import { createAuthClient } from 'better-auth/react'
+import { useMemo } from 'react'
 
-const getBaseURL = () => {
+// Lazy initialization - only happens on client after hydration
+let _authClient: any = null
+
+export function getAuthClient() {
   if (typeof window === 'undefined') {
-    return 'http://localhost:3000'
+    // Server-side fallback (shouldn't be used in production)
+    return createAuthClient({
+      baseURL: 'http://localhost:3000',
+    })
   }
-  
-  // Use window.location.origin on client - always valid
-  return window.location.origin
+
+  if (!_authClient) {
+    _authClient = createAuthClient({
+      baseURL: window.location.origin,
+    })
+  }
+
+  return _authClient
 }
 
-export const authClient = createAuthClient({
-  baseURL: getBaseURL(),
-})
+// Export the client directly (evaluates after hydration)
+export const authClient = new Proxy(
+  {},
+  {
+    get(target, prop) {
+      return getAuthClient()[prop as string]
+    },
+  }
+) as any
 
-export const { signUp, signIn, signOut, useSession } = authClient
+export const signUp = (options: any) => getAuthClient().signUp.email(options)
+export const signIn = (options: any) => getAuthClient().signIn.email(options)
+export const signOut = () => getAuthClient().signOut()
+export const useSession = () => getAuthClient().useSession()

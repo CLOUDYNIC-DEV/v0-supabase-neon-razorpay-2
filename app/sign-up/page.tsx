@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { authClient } from '@/lib/auth-client'
+import { getAuthClient } from '@/lib/auth-client'
 import Header from '@/components/header'
 import Link from 'next/link'
 
@@ -15,15 +15,20 @@ function SignUpContent() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await authClient.getSession()
-      if (data?.session?.user) {
-        const plan = searchParams.get('plan')
-        if (plan) {
-          router.push(`/checkout?plan=${plan}`)
+      try {
+        const authClient = getAuthClient()
+        const { data } = await authClient.getSession()
+        if (data?.session?.user) {
+          const plan = searchParams.get('plan')
+          if (plan) {
+            router.push(`/checkout?plan=${plan}`)
+          } else {
+            router.push('/dashboard')
+          }
         } else {
-          router.push('/dashboard')
+          setLoading(false)
         }
-      } else {
+      } catch (err) {
         setLoading(false)
       }
     }
@@ -42,6 +47,7 @@ function SignUpContent() {
     setError('')
 
     try {
+      const authClient = getAuthClient()
       const response = await authClient.signUp.email({
         email,
         password,
@@ -50,7 +56,7 @@ function SignUpContent() {
 
       if (response?.user) {
         // Wait for cookie to be set before redirecting
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 300))
         
         const plan = searchParams.get('plan')
         if (plan) {

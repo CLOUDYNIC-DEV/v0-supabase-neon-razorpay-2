@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { authClient } from '@/lib/auth-client'
+import { getAuthClient } from '@/lib/auth-client'
 import Header from '@/components/header'
 import Link from 'next/link'
 
@@ -14,10 +14,15 @@ export default function SignInPage() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await authClient.getSession()
-      if (data?.session?.user) {
-        router.push('/dashboard')
-      } else {
+      try {
+        const authClient = getAuthClient()
+        const { data } = await authClient.getSession()
+        if (data?.session?.user) {
+          router.push('/dashboard')
+        } else {
+          setLoading(false)
+        }
+      } catch (err) {
         setLoading(false)
       }
     }
@@ -35,6 +40,7 @@ export default function SignInPage() {
     setError('')
 
     try {
+      const authClient = getAuthClient()
       const response = await authClient.signIn.email({
         email,
         password,
@@ -42,7 +48,7 @@ export default function SignInPage() {
       
       if (response?.user) {
         // Wait for cookie to be set before redirecting
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 300))
         router.push('/dashboard')
       }
     } catch (err: any) {

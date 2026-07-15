@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { authClient } from '@/lib/auth-client'
+import { getAuthClient } from '@/lib/auth-client'
 import Header from '@/components/header'
 import Link from 'next/link'
 
@@ -23,6 +23,7 @@ export default function DashboardPage() {
         const maxRetries = 5
 
         while (!sessionData?.session?.user && retries < maxRetries) {
+          const authClient = getAuthClient()
           const { data } = await authClient.getSession()
           sessionData = data
 
@@ -33,7 +34,7 @@ export default function DashboardPage() {
           retries++
           if (retries < maxRetries) {
             // Wait before retrying
-            await new Promise(resolve => setTimeout(resolve, 200))
+            await new Promise(resolve => setTimeout(resolve, 150))
           }
         }
 

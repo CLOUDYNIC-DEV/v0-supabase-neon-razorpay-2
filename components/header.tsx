@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { authClient } from '@/lib/auth-client'
+import { getAuthClient } from '@/lib/auth-client'
 
 export default function Header() {
   const router = useRouter()
@@ -15,10 +15,11 @@ export default function Header() {
   useEffect(() => {
     const checkUser = async () => {
       try {
+        const authClient = getAuthClient()
         const { data } = await authClient.getSession()
         setUser(data?.session?.user || null)
       } catch (err) {
-        console.error('Error checking session:', err)
+        // Silently fail for unauthenticated users
       } finally {
         setLoading(false)
       }
@@ -29,10 +30,12 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
+      const authClient = getAuthClient()
       await authClient.signOut()
       router.push('/')
     } catch (err) {
-      console.error('Logout error:', err)
+      // Fallback to redirect
+      router.push('/')
     }
   }
 
