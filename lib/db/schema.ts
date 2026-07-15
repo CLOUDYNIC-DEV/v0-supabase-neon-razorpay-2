@@ -5,7 +5,6 @@ import { relations } from 'drizzle-orm'
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
-  password: text('password'),
   name: text('name'),
   emailVerified: boolean('emailVerified').default(false),
   image: text('image'),
@@ -26,6 +25,7 @@ export const account = pgTable('account', {
   userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
   accountId: text('accountId').notNull(),
   providerId: text('providerId').notNull(),
+  password: text('password'),
   accessToken: text('accessToken'),
   refreshToken: text('refreshToken'),
   idToken: text('idToken'),
