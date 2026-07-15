@@ -5,6 +5,7 @@ import { relations } from 'drizzle-orm'
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
+  password: text('password'),
   name: text('name'),
   emailVerified: boolean('emailVerified').default(false),
   image: text('image'),
