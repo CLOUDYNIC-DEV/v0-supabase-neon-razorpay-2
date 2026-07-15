@@ -105,23 +105,6 @@ export default function Header() {
                       SIGN UP
                     </Link>
                   </>
-                ) : (
-                  <>
-                    <Link
-                      href="/sign-in"
-                      className="block px-4 py-2 text-sm font-bold border-2 border-foreground hover:bg-foreground hover:text-background transition-smooth"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      SIGN IN
-                    </Link>
-                    <Link
-                      href="/sign-up"
-                      className="block px-4 py-2 text-sm font-bold bg-foreground text-background border-2 border-foreground hover:bg-background hover:text-foreground transition-smooth"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      SIGN UP
-                    </Link>
-                  </>
                 )}
               </>
             )}

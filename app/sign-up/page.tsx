@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { authClient } from '@/lib/auth-client'
 import Header from '@/components/header'
@@ -8,7 +8,7 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-export default function SignUpPage() {
+function SignUpContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
@@ -147,5 +147,13 @@ export default function SignUpPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>}>
+      <SignUpContent />
+    </Suspense>
   )
 }
