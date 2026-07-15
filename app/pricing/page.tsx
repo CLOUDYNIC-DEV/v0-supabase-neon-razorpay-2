@@ -65,10 +65,10 @@ export default function Pricing() {
           {/* Pro Plan */}
           <div className="border-4 border-foreground p-4 sm:p-6 md:p-8 flex flex-col bg-card ring-2 ring-foreground ring-offset-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">PRO</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">For low range companies</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">Perfect for production</p>
 
             <div className="mb-4 sm:mb-6">
-              <span className="text-3xl sm:text-4xl font-bold">$1.99</span>
+              <span className="text-3xl sm:text-4xl font-bold">₹199</span>
               <span className="text-xs sm:text-sm text-muted-foreground">/month</span>
             </div>
 
@@ -91,15 +91,15 @@ export default function Pricing() {
               </li>
               <li className="flex gap-2 sm:gap-3">
                 <span className="text-muted-foreground flex-shrink-0">✗</span>
-                <span className="text-xs sm:text-sm text-muted-foreground">Custom model</span>
+                <span className="text-xs sm:text-sm text-muted-foreground">Custom models</span>
               </li>
             </ul>
 
             <Link
-              href="/checkout?plan=pro"
+              href="/auth/sign-up?plan=pro"
               className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-center text-xs sm:text-sm"
             >
-              CHOOSE PRO
+              GET STARTED
             </Link>
           </div>
 
@@ -109,10 +109,10 @@ export default function Pricing() {
               POPULAR
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">PRO MAX</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">For growing companies</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">For enterprise</p>
 
             <div className="mb-4 sm:mb-6">
-              <span className="text-3xl sm:text-4xl font-bold">$9.99</span>
+              <span className="text-3xl sm:text-4xl font-bold">₹999</span>
               <span className="text-xs sm:text-sm text-muted-foreground">/month</span>
             </div>
 
@@ -131,19 +131,19 @@ export default function Pricing() {
               </li>
               <li className="flex gap-2 sm:gap-3">
                 <span className="font-bold flex-shrink-0">✓</span>
-                <span className="text-xs sm:text-sm">24/7 support</span>
+                <span className="text-xs sm:text-sm">24/7 priority support</span>
               </li>
               <li className="flex gap-2 sm:gap-3">
                 <span className="font-bold flex-shrink-0">✓</span>
-                <span className="text-xs sm:text-sm">Custom models</span>
+                <span className="text-xs sm:text-sm">Custom integrations</span>
               </li>
             </ul>
 
             <Link
-              href="/checkout?plan=pro_max"
+              href="/auth/sign-up?plan=pro_max"
               className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-center text-xs sm:text-sm"
             >
-              CHOOSE PRO MAX
+              GET STARTED
             </Link>
           </div>
         </div>

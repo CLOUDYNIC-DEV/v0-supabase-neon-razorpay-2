@@ -2,13 +2,13 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/auth-client'
 import Header from '@/components/header'
+import Link from 'next/link'
 
 const PLANS = {
-  free: { name: 'Free', price: 0, requests_per_minute: 1, requests_per_day: 100 },
-  pro: { name: 'Pro', price: 1.99, requests_per_minute: 30, requests_per_day: 10000 },
-  pro_max: { name: 'Pro Max', price: 9.99, requests_per_minute: "Unlimited", requests_per_day: "Unlimited" },
+  pro: { name: 'Pro', price: 199, requestsPerDay: 10000, description: 'Perfect for small projects' },
+  pro_max: { name: 'Pro Max', price: 999, requestsPerDay: 'Unlimited', description: 'Best for production apps' },
 }
 
 declare global {
@@ -21,23 +21,22 @@ function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [session, setSession] = useState<any>(null)
   const [error, setError] = useState('')
 
   const planId = (searchParams.get('plan') as keyof typeof PLANS) || 'pro'
   const plan = PLANS[planId]
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient()
-      const { data } = await supabase.auth.getUser()
-      if (!data.user) {
-        router.push('/auth/login')
+    const getSession = async () => {
+      const { data } = await authClient.getSession()
+      if (!data?.session?.user) {
+        router.push('/sign-in')
       } else {
-        setUser(data.user)
+        setSession(data.session)
       }
     }
-    checkAuth()
+    getSession()
   }, [router])
 
   useEffect(() => {
@@ -46,14 +45,16 @@ function CheckoutContent() {
     script.async = true
     document.body.appendChild(script)
     return () => {
-      document.body.removeChild(script)
+      if (document.body.contains(script)) {
+        document.body.removeChild(script)
+      }
     }
   }, [])
 
   const handlePayment = async () => {
-    if (plan.price === 0) {
-      // Free plan - no payment needed
-      await saveFreeSubscription()
+    if (!session?.user) {
+      setError('Session expired. Please sign in again.')
+      router.push('/sign-in')
       return
     }
 
@@ -67,8 +68,7 @@ function CheckoutContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           plan: planId,
-          amount: plan.price,
-          user_id: user.id,
+          amount: plan.price / 100, // Convert paise to rupees
         }),
       })
 
@@ -82,8 +82,8 @@ function CheckoutContent() {
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: Math.round(plan.price * 100),
-        currency: 'USD',
+        amount: plan.price,
+        currency: 'INR',
         name: 'Cloudynic AI',
         description: `${plan.name} Plan Subscription`,
         order_id: orderData.orderId,
@@ -97,7 +97,6 @@ function CheckoutContent() {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 plan: planId,
-                user_id: user.id,
               }),
             })
 
@@ -107,72 +106,66 @@ function CheckoutContent() {
               router.push('/payment-success')
             } else {
               setError(verifyData.error || 'Payment verification failed')
+              setLoading(false)
             }
-          } catch (err) {
-            setError('Error verifying payment')
+          } catch (err: any) {
+            setError(err.message || 'Error verifying payment')
+            setLoading(false)
           }
         },
         prefill: {
-          email: user?.email || '',
+          email: session?.user?.email || '',
+          name: session?.user?.name || '',
         },
-        theme: {
-          color: '#000000',
+        modal: {
+          ondismiss: () => {
+            setLoading(false)
+          },
         },
       }
 
       const razorpay = new window.Razorpay(options)
       razorpay.open()
-    } catch (err) {
-      setError('Failed to process payment')
-    } finally {
+    } catch (err: any) {
+      setError(err.message || 'Failed to process payment')
       setLoading(false)
     }
   }
 
-  const saveFreeSubscription = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/subscription/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: 'free',
-          user_id: user.id,
-        }),
-      })
-
-      if (response.ok) {
-        router.push('/payment-success')
-      } else {
-        setError('Failed to create subscription')
-      }
-    } finally {
-      setLoading(false)
-    }
+  if (!session?.user) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full border-4 border-foreground p-8 text-center">
+          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+        </div>
+      </main>
+    )
   }
 
   return (
     <main className="min-h-screen bg-background">
       <Header />
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <h1 className="text-4xl font-bold mb-12">CHECKOUT</h1>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-8 sm:mb-12">CHECKOUT</h1>
 
-        <div className="border-4 border-foreground p-8">
+        <div className="border-4 border-foreground p-6 sm:p-8">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-4">{plan.name} Plan</h2>
-            <div className="text-5xl font-bold mb-2">
-              ${plan.price}
-              <span className="text-xl text-muted-foreground">/month</span>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">{plan.name} Plan</h2>
+            <div className="text-4xl sm:text-5xl font-bold mb-2">
+              ₹{plan.price}
+              <span className="text-lg sm:text-xl text-muted-foreground">/month</span>
             </div>
+            <p className="text-muted-foreground mb-4">{plan.description}</p>
             <div className="space-y-2 text-muted-foreground mb-8">
-              <p>Requests per minute: {plan.requests_per_minute}</p>
-              <p>Requests per day: {plan.requests_per_day}</p>
+              <p>✓ {typeof plan.requestsPerDay === 'number' ? `${plan.requestsPerDay.toLocaleString()} requests/day` : 'Unlimited requests'}</p>
+              <p>✓ Priority support</p>
+              <p>✓ API access</p>
             </div>
           </div>
 
           {error && (
-            <div className="bg-destructive text-white p-4 mb-6 border-2 border-destructive">
+            <div className="bg-background border-2 border-red-500 text-red-500 p-4 mb-6 text-sm sm:text-base">
               <p>{error}</p>
             </div>
           )}
@@ -180,14 +173,20 @@ function CheckoutContent() {
           <button
             onClick={handlePayment}
             disabled={loading}
-            className="w-full px-8 py-4 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all disabled:opacity-50"
+            className="w-full px-6 sm:px-8 py-4 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all disabled:opacity-50 text-sm sm:text-base"
           >
-            {loading ? 'PROCESSING...' : plan.price === 0 ? 'GET FREE PLAN' : 'PAY $' + plan.price}
+            {loading ? 'PROCESSING...' : `PAY ₹${plan.price}`}
           </button>
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          <p className="text-center text-xs sm:text-sm text-muted-foreground mt-6">
             Secure payment powered by Razorpay
           </p>
+
+          <div className="mt-8 pt-8 border-t border-foreground">
+            <Link href="/pricing" className="text-muted-foreground hover:text-foreground text-sm">
+              ← Back to pricing
+            </Link>
+          </div>
         </div>
       </div>
     </main>

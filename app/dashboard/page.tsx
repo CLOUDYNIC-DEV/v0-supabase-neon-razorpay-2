@@ -1,188 +1,187 @@
-import { redirect } from 'next/navigation'
-import { headers } from 'next/headers'
-import { auth } from '@/lib/auth'
-import { getUserProfile, getUser, getApiUsageStats, signOutUser } from '@/app/actions/auth-actions'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { authClient } from '@/lib/auth-client'
+import Header from '@/components/header'
 import Link from 'next/link'
 
-export const dynamic = 'force-dynamic'
+export default function DashboardPage() {
+  const router = useRouter()
+  const [session, setSession] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-export const metadata = {
-  title: 'Dashboard - Cloudynic AI',
-  description: 'Your Cloudynic AI dashboard',
-}
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data } = await authClient.getSession()
 
-export default async function DashboardPage() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  
-  if (!session?.user) {
-    redirect('/sign-in')
+        if (!data?.session?.user) {
+          router.push('/sign-in')
+          return
+        }
+
+        setSession(data.session)
+
+        // Fetch user profile
+        const profileResponse = await fetch('/api/user/profile')
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json()
+          setProfile(profileData.profile)
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  const handleSignOut = async () => {
+    await authClient.signOut()
+    router.push('/')
   }
 
-  const [userRecord, profile, stats] = await Promise.all([
-    getUser(),
-    getUserProfile(),
-    getApiUsageStats(),
-  ])
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center h-96">
+          <p className="text-2xl font-bold">LOADING...</p>
+        </div>
+      </main>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-background">
+      <Header />
 
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-12">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-gray-600">Welcome, {userRecord?.name || userRecord?.email}</p>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Dashboard</h1>
+            <p className="text-muted-foreground">Welcome, {session?.user?.name || session?.user?.email}</p>
           </div>
-          <div className="flex gap-4">
-            <Link href="/api-test" className="text-blue-600 hover:underline">
-              Test API
+          <button
+            onClick={handleSignOut}
+            className="px-6 py-2 bg-foreground text-background font-bold border-2 border-foreground hover:bg-background hover:text-foreground transition-all text-sm sm:text-base"
+          >
+            SIGN OUT
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {/* Plan Card */}
+          <div className="border-4 border-foreground p-6">
+            <h2 className="text-lg font-bold mb-4">CURRENT PLAN</h2>
+            <div className="mb-4">
+              <p className="text-3xl font-bold capitalize">
+                {profile?.plan === 'pro' ? 'Pro' : profile?.plan === 'ultimate' ? 'Pro Max' : 'Free'}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {profile?.plan === 'pro' && '₹199/month - 10,000 requests/day'}
+                {profile?.plan === 'ultimate' && '₹999/month - Unlimited requests'}
+                {profile?.plan === 'free' && 'Free tier - 100 requests/day'}
+              </p>
+            </div>
+            <Link
+              href="/pricing"
+              className="inline-block px-4 py-2 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-all text-sm"
+            >
+              UPGRADE PLAN
             </Link>
-            <form action={async () => {
-              'use server'
-              await signOutUser()
-              redirect('/sign-in')
-            }}>
-              <button type="submit" className="text-red-600 hover:underline">
-                Sign Out
-              </button>
-            </form>
           </div>
+
+          {/* Credits Card */}
+          <div className="border-4 border-foreground p-6">
+            <h2 className="text-lg font-bold mb-4">CREDITS</h2>
+            <div className="mb-4">
+              <p className="text-3xl font-bold">{profile?.credits?.toLocaleString() || 0}</p>
+              <p className="text-sm text-muted-foreground mt-2">Available credits</p>
+            </div>
+            <div className="w-full bg-card border-2 border-foreground h-2 overflow-hidden">
+              <div
+                className="bg-foreground h-full transition-all"
+                style={{
+                  width: `${Math.min(100, ((profile?.credits || 0) / 10000) * 100)}%`,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* API Calls Card */}
+          <div className="border-4 border-foreground p-6">
+            <h2 className="text-lg font-bold mb-4">API CALLS</h2>
+            <div className="mb-4">
+              <p className="text-3xl font-bold">{profile?.apiCalls?.toLocaleString() || 0}</p>
+              <p className="text-sm text-muted-foreground mt-2">Total API calls used</p>
+            </div>
+            <Link
+              href="/pricing"
+              className="inline-block px-4 py-2 border-2 border-foreground font-bold hover:bg-foreground hover:text-background transition-all text-sm"
+            >
+              VIEW DOCS
+            </Link>
+          </div>
+        </div>
+
+        {/* Account Settings */}
+        <div className="border-4 border-foreground p-6 mb-12">
+          <h2 className="text-2xl font-bold mb-6">ACCOUNT SETTINGS</h2>
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <p className="font-bold">Email Address</p>
+                <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
+              </div>
+            </div>
+            <div className="border-t border-foreground pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <p className="font-bold">Full Name</p>
+                <p className="text-sm text-muted-foreground">{session?.user?.name || 'Not set'}</p>
+              </div>
+            </div>
+            <div className="border-t border-foreground pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <p className="font-bold">Account Created</p>
+                <p className="text-sm text-muted-foreground">
+                  {session?.user?.createdAt ? new Date(session.user.createdAt).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Links */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link
+            href="/pricing"
+            className="border-2 border-foreground p-4 text-center font-bold hover:bg-foreground hover:text-background transition-all text-sm sm:text-base"
+          >
+            PRICING
+          </Link>
+          <Link
+            href="/payment-success"
+            className="border-2 border-foreground p-4 text-center font-bold hover:bg-foreground hover:text-background transition-all text-sm sm:text-base"
+          >
+            API SETUP
+          </Link>
+          <a
+            href="mailto:hello@cloudynic.com"
+            className="border-2 border-foreground p-4 text-center font-bold hover:bg-foreground hover:text-background transition-all text-sm sm:text-base"
+          >
+            SUPPORT
+          </a>
+          <Link
+            href="/"
+            className="border-2 border-foreground p-4 text-center font-bold hover:bg-foreground hover:text-background transition-all text-sm sm:text-base"
+          >
+            HOME
+          </Link>
         </div>
       </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-gray-600 text-sm">Plan</div>
-            <div className="text-2xl font-bold capitalize">{profile?.plan || 'free'}</div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-gray-600 text-sm">Credits</div>
-            <div className="text-2xl font-bold">{profile?.credits || 0}</div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-gray-600 text-sm">API Calls</div>
-            <div className="text-2xl font-bold">{stats.totalCalls}</div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-gray-600 text-sm">Success Rate</div>
-            <div className="text-2xl font-bold">{stats.successRate}%</div>
-          </div>
-        </div>
-
-        {/* Cards Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Profile Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">Profile</h2>
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm text-gray-600">Email</div>
-                <div className="font-medium">{userRecord?.email}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Name</div>
-                <div className="font-medium">{userRecord?.name || 'Not set'}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Member Since</div>
-                <div className="font-medium">
-                  {userRecord?.createdAt?.toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* API Stats Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">API Performance</h2>
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm text-gray-600">Total Calls</div>
-                <div className="font-medium">{stats.totalCalls}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Avg Response Time</div>
-                <div className="font-medium">{stats.averageResponseTime}ms</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Success Rate</div>
-                <div className="font-medium">{stats.successRate}%</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Payment Section */}
-        <div className="mt-8 bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Upgrade Plan</h2>
-          <p className="text-gray-600 mb-4">
-            Current plan: <span className="font-bold capitalize">{profile?.plan || 'free'}</span>
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="border rounded-lg p-4">
-              <div className="font-bold mb-2">Free</div>
-              <div className="text-2xl font-bold mb-4">$0</div>
-              <button className="w-full bg-gray-200 py-2 rounded" disabled>
-                Current
-              </button>
-            </div>
-            <div className="border rounded-lg p-4 border-blue-500">
-              <div className="font-bold mb-2">Pro</div>
-              <div className="text-2xl font-bold mb-4">$9.99</div>
-              <Link href="/checkout?plan=pro" className="block w-full bg-blue-600 text-white py-2 rounded text-center hover:bg-blue-700">
-                Upgrade
-              </Link>
-            </div>
-            <div className="border rounded-lg p-4">
-              <div className="font-bold mb-2">Enterprise</div>
-              <div className="text-2xl font-bold mb-4">Custom</div>
-              <Link href="/contact" className="block w-full bg-blue-600 text-white py-2 rounded text-center hover:bg-blue-700">
-                Contact
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        {stats.recentCalls.length > 0 && (
-          <div className="mt-8 bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">Recent API Calls</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b">
-                  <tr>
-                    <th className="text-left py-2">Endpoint</th>
-                    <th className="text-left py-2">Method</th>
-                    <th className="text-left py-2">Status</th>
-                    <th className="text-left py-2">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.recentCalls.map((call: any) => (
-                    <tr key={call.id} className="border-b hover:bg-gray-50">
-                      <td className="py-2 text-sm">{call.endpoint}</td>
-                      <td className="py-2 text-sm">{call.method}</td>
-                      <td className="py-2 text-sm">
-                        <span className={call.statusCode === 200 ? 'text-green-600' : 'text-red-600'}>
-                          {call.statusCode}
-                        </span>
-                      </td>
-                      <td className="py-2 text-sm">{call.responseTime}ms</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    </main>
   )
 }

@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { createClient } from '@/lib/supabase/server'
+import { auth } from '@/lib/auth'
+import { getDb } from '@/lib/db'
+import { headers } from 'next/headers'
+import { eq } from 'drizzle-orm'
+import { payment, userProfile } from '@/lib/db/schema'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(req: NextRequest) {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = await req.json()
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan, paymentId } = await req.json()
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return NextResponse.json({ error: 'Missing payment details' }, { status: 400 })
+    }
 
     // Verify signature
     const body = razorpay_order_id + '|' + razorpay_payment_id
@@ -18,59 +27,54 @@ export async function POST(req: NextRequest) {
     }
 
     // Get authenticated user
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Save subscription to database
-    const { data: subscription, error } = await supabase
-      .from('subscriptions')
-      .insert({
-        user_id: user.id,
-        plan_type: plan,
-        status: 'active',
-        razorpay_order_id,
-        razorpay_payment_id,
-        start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      })
-      .select()
-      .single()
+    const db = getDb()
+    const userId = session.user.id
 
-    if (error) {
-      console.error('Database error:', error)
-      return NextResponse.json({ error: 'Failed to save subscription' }, { status: 500 })
+    // Update payment record with successful payment details
+    await db
+      .update(payment)
+      .set({
+        status: 'completed',
+        razorpayPaymentId: razorpay_payment_id,
+        razorpaySignature: razorpay_signature,
+        updatedAt: new Date(),
+      })
+      .where(eq(payment.razorpayOrderId, razorpay_order_id))
+
+    // Update or create user profile with plan
+    const existingProfile = await db
+      .select()
+      .from(userProfile)
+      .where(eq(userProfile.userId, userId))
+      .limit(1)
+
+    if (existingProfile.length > 0) {
+      await db
+        .update(userProfile)
+        .set({
+          plan: plan || 'pro',
+          credits: plan === 'pro' ? 10000n : plan === 'ultimate' ? 50000n : 1000n,
+          updatedAt: new Date(),
+        })
+        .where(eq(userProfile.userId, userId))
+    } else {
+      await db.insert(userProfile).values({
+        id: uuidv4(),
+        userId: userId,
+        plan: plan || 'pro',
+        credits: plan === 'pro' ? 10000n : plan === 'ultimate' ? 50000n : 1000n,
+      })
     }
 
-    // Update user's plan type
-    await supabase
-      .from('users')
-      .update({ plan_type: plan })
-      .eq('id', user.id)
-
-    // Generate an API key for the new subscription
-    const { data: apiKey, error: keyError } = await supabase
-      .from('api_keys')
-      .insert({
-        user_id: user.id,
-        key: `sk_${crypto.randomBytes(24).toString('hex')}`,
-        name: `${plan.toUpperCase()} Plan Key`,
-        plan_tier: plan,
-        is_active: true,
-      })
-      .select()
-      .single()
-
-    if (keyError) {
-      console.error('Error creating API key:', keyError)
-    }
-
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      message: 'Payment verified and plan activated',
+    })
   } catch (error) {
     console.error('Error verifying payment:', error)
     return NextResponse.json({ error: 'Failed to verify payment' }, { status: 500 })
