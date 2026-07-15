@@ -42,22 +42,25 @@ function SignUpContent() {
     setError('')
 
     try {
-      await authClient.signUp.email({
+      const response = await authClient.signUp.email({
         email,
         password,
         name: name || email,
       })
 
-      const plan = searchParams.get('plan')
-      if (plan) {
-        router.push(`/checkout?plan=${plan}`)
-      } else {
-        router.push('/dashboard')
+      if (response?.user) {
+        // Wait for cookie to be set before redirecting
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        const plan = searchParams.get('plan')
+        if (plan) {
+          router.push(`/checkout?plan=${plan}`)
+        } else {
+          router.push('/dashboard')
+        }
       }
-      router.refresh()
     } catch (err: any) {
       setError(err.message || 'Failed to create account')
-    } finally {
       setIsLoading(false)
     }
   }

@@ -35,15 +35,18 @@ export default function SignInPage() {
     setError('')
 
     try {
-      await authClient.signIn.email({
+      const response = await authClient.signIn.email({
         email,
         password,
       })
-      router.push('/dashboard')
-      router.refresh()
+      
+      if (response?.user) {
+        // Wait for cookie to be set before redirecting
+        await new Promise(resolve => setTimeout(resolve, 500))
+        router.push('/dashboard')
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to sign in')
-    } finally {
       setIsLoading(false)
     }
   }

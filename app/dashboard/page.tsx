@@ -17,14 +17,32 @@ export default function DashboardPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data } = await authClient.getSession()
+        // Retry logic for session check - sometimes cookie takes a moment
+        let sessionData = null
+        let retries = 0
+        const maxRetries = 5
 
-        if (!data?.session?.user) {
+        while (!sessionData?.session?.user && retries < maxRetries) {
+          const { data } = await authClient.getSession()
+          sessionData = data
+
+          if (sessionData?.session?.user) {
+            break
+          }
+
+          retries++
+          if (retries < maxRetries) {
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 200))
+          }
+        }
+
+        if (!sessionData?.session?.user) {
           router.push('/sign-in')
           return
         }
 
-        setSession(data.session)
+        setSession(sessionData.session)
 
         // Fetch user profile
         const profileResponse = await fetch('/api/user/profile')
